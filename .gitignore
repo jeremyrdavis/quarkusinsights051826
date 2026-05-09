@@ -47,3 +47,11 @@ nb-configuration.xml
 # Claude
 .claude/
 CLAUDE.md
+
+# QuarkusInsights demo — private and under-development content
+agent-os/
+IDEA_PILE.md
+
+# Word lockfiles and source documents (markdown is the canonical form)
+~$*.docx
+*.docx
