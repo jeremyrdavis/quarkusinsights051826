@@ -2,12 +2,16 @@ package io.arrogantprogrammer.quarkusinsights.programming.domain;
 
 /**
  * Thrown when a behavior method on {@link Episode} is invoked from an
- * incompatible {@link EpisodeStatus}.
+ * {@link EpisodeStatus} that does not permit the operation.
  *
  * <p>For example, calling {@link Episode#publish()} on an episode that
- * is still {@link EpisodeStatus#SCHEDULED} (not {@code LIVE}) yields
- * an {@code IllegalEpisodeTransition} carrying both the actual current
- * status and the status that would have made the call valid.
+ * is still {@link EpisodeStatus#SCHEDULED} (rather than {@code LIVE})
+ * yields an {@code IllegalEpisodeTransition} carrying the actual
+ * current status. The set of permitted source states is documented in
+ * each behavior method's own Javadoc — this exception does not name
+ * one because some operations are valid from more than one state
+ * (e.g., {@code assignPresenter} is allowed from both {@code SCHEDULED}
+ * and {@code LIVE}).
  *
  * <p>This exception is unchecked because lifecycle violations are
  * programmer errors, not recoverable conditions; callers MUST either
@@ -19,31 +23,23 @@ package io.arrogantprogrammer.quarkusinsights.programming.domain;
 public class IllegalEpisodeTransition extends RuntimeException {
 
     private final EpisodeStatus actual;
-    private final EpisodeStatus required;
 
     /**
      * Creates an IllegalEpisodeTransition.
      *
-     * @param actual   the status the episode is actually in
-     * @param required the status that would have made the call valid
+     * @param actual the status the episode was in when the disallowed
+     *               transition was attempted
      */
-    public IllegalEpisodeTransition(EpisodeStatus actual, EpisodeStatus required) {
-        super("Episode is " + actual + ", but the requested transition requires " + required);
+    public IllegalEpisodeTransition(EpisodeStatus actual) {
+        super("Episode is " + actual + "; the requested transition is not allowed from this state");
         this.actual = actual;
-        this.required = required;
     }
 
     /**
-     * @return the status the episode is actually in
+     * @return the status the episode was in when the disallowed
+     *     transition was attempted
      */
     public EpisodeStatus actual() {
         return actual;
-    }
-
-    /**
-     * @return the status the call required
-     */
-    public EpisodeStatus required() {
-        return required;
     }
 }
