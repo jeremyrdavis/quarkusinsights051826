@@ -17,9 +17,11 @@ class EpisodeIdTest {
 
     @Test
     void equalsAndHashCodeByValue() {
-        UUID uuid = UUID.fromString("11111111-1111-1111-1111-111111111111");
-        EpisodeId a = new EpisodeId(uuid);
-        EpisodeId b = new EpisodeId(uuid);
+        UUID first = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        UUID second = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        // Distinct UUID objects, same value — UUID.fromString does not intern.
+        EpisodeId a = new EpisodeId(first);
+        EpisodeId b = new EpisodeId(second);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }
@@ -41,5 +43,10 @@ class EpisodeIdTest {
     @Test
     void fromStringRejectsInvalidUuid() {
         assertThrows(IllegalArgumentException.class, () -> EpisodeId.fromString("not-a-uuid"));
+    }
+
+    @Test
+    void fromStringRejectsNull() {
+        assertThrows(IllegalArgumentException.class, () -> EpisodeId.fromString(null));
     }
 }
