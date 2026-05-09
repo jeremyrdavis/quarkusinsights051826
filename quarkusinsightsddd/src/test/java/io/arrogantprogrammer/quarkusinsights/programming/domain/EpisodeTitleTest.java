@@ -34,15 +34,15 @@ class EpisodeTitleTest {
 
     @Test
     void acceptsTwoHundredCharacters() {
-        String two_hundred_a = "a".repeat(200);
-        EpisodeTitle t = new EpisodeTitle(two_hundred_a);
-        assertEquals(two_hundred_a, t.value());
+        String twoHundredAs = "a".repeat(200);
+        EpisodeTitle t = new EpisodeTitle(twoHundredAs);
+        assertEquals(twoHundredAs, t.value());
     }
 
     @Test
     void rejectsTwoHundredOneCharacters() {
-        String too_long = "a".repeat(201);
-        assertThrows(IllegalArgumentException.class, () -> new EpisodeTitle(too_long));
+        String tooLong = "a".repeat(201);
+        assertThrows(IllegalArgumentException.class, () -> new EpisodeTitle(tooLong));
     }
 
     @Test

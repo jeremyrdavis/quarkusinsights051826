@@ -24,28 +24,28 @@ class AbstractTextTest {
 
     @Test
     void rejectsBelowMinimumLength() {
-        String too_short = "a".repeat(99);
-        assertThrows(IllegalArgumentException.class, () -> new AbstractText(too_short));
+        String tooShort = "a".repeat(99);
+        assertThrows(IllegalArgumentException.class, () -> new AbstractText(tooShort));
     }
 
     @Test
     void acceptsExactMinimumLength() {
-        String exactly_100 = "a".repeat(100);
-        AbstractText t = new AbstractText(exactly_100);
-        assertEquals(exactly_100, t.value());
+        String exactly100 = "a".repeat(100);
+        AbstractText t = new AbstractText(exactly100);
+        assertEquals(exactly100, t.value());
     }
 
     @Test
     void acceptsExactMaximumLength() {
-        String exactly_5000 = "a".repeat(5000);
-        AbstractText t = new AbstractText(exactly_5000);
-        assertEquals(exactly_5000, t.value());
+        String exactly5000 = "a".repeat(5000);
+        AbstractText t = new AbstractText(exactly5000);
+        assertEquals(exactly5000, t.value());
     }
 
     @Test
     void rejectsAboveMaximumLength() {
-        String too_long = "a".repeat(5001);
-        assertThrows(IllegalArgumentException.class, () -> new AbstractText(too_long));
+        String tooLong = "a".repeat(5001);
+        assertThrows(IllegalArgumentException.class, () -> new AbstractText(tooLong));
     }
 
     @Test
