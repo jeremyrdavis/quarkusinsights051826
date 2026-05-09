@@ -15,6 +15,9 @@ public record CommentId(UUID value) {
     }
 
     public static CommentId fromString(String s) {
+        if (s == null) {
+            throw new IllegalArgumentException("CommentId string must not be null");
+        }
         return new CommentId(UUID.fromString(s));
     }
 }

@@ -17,9 +17,11 @@ class CommentIdTest {
 
     @Test
     void equalsAndHashCodeByValue() {
-        UUID uuid = UUID.fromString("55555555-5555-5555-5555-555555555555");
-        CommentId a = new CommentId(uuid);
-        CommentId b = new CommentId(uuid);
+        UUID first = UUID.fromString("55555555-5555-5555-5555-555555555555");
+        UUID second = UUID.fromString("55555555-5555-5555-5555-555555555555");
+        // Distinct UUID objects, same value — UUID.fromString does not intern.
+        CommentId a = new CommentId(first);
+        CommentId b = new CommentId(second);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }
@@ -41,5 +43,10 @@ class CommentIdTest {
     @Test
     void fromStringRejectsInvalidUuid() {
         assertThrows(IllegalArgumentException.class, () -> CommentId.fromString("not-a-uuid"));
+    }
+
+    @Test
+    void fromStringRejectsNull() {
+        assertThrows(IllegalArgumentException.class, () -> CommentId.fromString(null));
     }
 }
