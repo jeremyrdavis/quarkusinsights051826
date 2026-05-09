@@ -55,3 +55,6 @@ IDEA_PILE.md
 # Word lockfiles and source documents (markdown is the canonical form)
 ~$*.docx
 *.docx
+
+# Local-only design and planning artifacts (kept out of the public reference)
+docs/superpowers/
