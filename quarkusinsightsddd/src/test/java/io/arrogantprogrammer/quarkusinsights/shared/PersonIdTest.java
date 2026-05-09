@@ -17,9 +17,11 @@ class PersonIdTest {
 
     @Test
     void equalsAndHashCodeByValue() {
-        UUID uuid = UUID.fromString("33333333-3333-3333-3333-333333333333");
-        PersonId a = new PersonId(uuid);
-        PersonId b = new PersonId(uuid);
+        UUID first = UUID.fromString("33333333-3333-3333-3333-333333333333");
+        UUID second = UUID.fromString("33333333-3333-3333-3333-333333333333");
+        // Distinct UUID objects, same value — UUID.fromString does not intern.
+        PersonId a = new PersonId(first);
+        PersonId b = new PersonId(second);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }
@@ -41,5 +43,10 @@ class PersonIdTest {
     @Test
     void fromStringRejectsInvalidUuid() {
         assertThrows(IllegalArgumentException.class, () -> PersonId.fromString("not-a-uuid"));
+    }
+
+    @Test
+    void fromStringRejectsNull() {
+        assertThrows(IllegalArgumentException.class, () -> PersonId.fromString(null));
     }
 }

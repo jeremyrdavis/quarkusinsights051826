@@ -15,6 +15,9 @@ public record PersonId(UUID value) {
     }
 
     public static PersonId fromString(String s) {
+        if (s == null) {
+            throw new IllegalArgumentException("PersonId string must not be null");
+        }
         return new PersonId(UUID.fromString(s));
     }
 }
