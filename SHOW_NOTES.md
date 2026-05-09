@@ -2,7 +2,10 @@
 
 Stream notes for the QuarkusInsights episode. Working draft.
 
-**Thesis (one sentence):** Strong DDD boundaries are what make AI-assisted development safe at scale — agents are excellent at generating plumbing but will smear business rules everywhere unless aggregates and value objects already protect them.
+**Two co-equal goals for the episode:**
+
+1. **Reference architecture** — show how to build a maintainable monolithic Quarkus app using DDD and Hexagonal Architecture. The reference app at `quarkusinsightsddd/` stands on its own as a "how to do DDD in Quarkus" teaching artifact, valuable to viewers who care nothing about AI. Most monolithic Quarkus material online is anemic-CRUD-with-MVC; this fills the gap.
+2. **Agentic-friendliness proof** — show that the same architecture is a strong fit for AI-assisted development. The four agent outputs are **proof points across CLIs**, not a competition: any team using any of these tools can apply this pattern. Strong DDD boundaries protect business invariants by *structure*, not by convention, so coding agents (which are pattern machines, not domain experts) can generate plumbing without smearing business rules into the wrong places.
 
 ---
 
@@ -14,8 +17,8 @@ Stream notes for the QuarkusInsights episode. Working draft.
 | 0:03 – 0:08 | Spec walkthrough + spawn 4 agents in Docker Sandboxes | Talk + 4 terminal panes |
 | 0:08 – 0:33 | Live-coding tour of DDD (anemic CRUD → DDD constructs) | IDE |
 | 0:33 – 0:43 | Episode aggregate deep dive | IDE |
-| 0:43 – 0:58 | Agent shootout — grade each output against the rubric | Side-by-side editors |
-| 0:58 – 1:00 | Wrap — restate thesis with evidence | Talk |
+| 0:43 – 0:58 | Agent examination — walk all four outputs against the architectural checklist | Side-by-side editors |
+| 0:58 – 1:00 | Wrap — restate both goals with evidence | Talk |
 
 ---
 
@@ -88,7 +91,7 @@ If the laptop is < 32 GB RAM, or if a dry run shows the laptop swapping or OBS s
 - Provision one beefy VM (e.g., 32 GB / 8 vCPU on AWS / GCP / Hetzner / DigitalOcean)
 - Install Docker; clone the same sandbox base image
 - Run all four sandboxes on the VM
-- From the laptop: `ssh` (or `code-tunnel` / `mosh` / VS Code Remote-SSH) into each sandbox during the shootout
+- From the laptop: `ssh` (or `code-tunnel` / `mosh` / VS Code Remote-SSH) into each sandbox during the examination
 
 The laptop then does nothing but stream and display. Spec size, build cycles, and JVM memory all stop mattering for the local machine.
 
@@ -129,8 +132,8 @@ If any of those fail, escalate to the cloud-VM workaround.
 ## 0:00 – 0:03 — Open
 
 - Hit the reference app live: landing page → click upcoming episode → submit a comment → submit a 5-star rating. Show the average update.
-- One-liner: *"This is what we're going to ship by the end of the hour. But more importantly — this is what four different AI coding agents are going to try to ship in parallel, in YOLO mode, from a single spec. And we're going to grade them on whether they actually understood Domain-Driven Design, or whether they just produced something that looks like it does."*
-- State the thesis once, clean. Don't over-explain — the rest of the show is the explanation.
+- One-liner: *"This is what we're going to ship by the end of the hour. We're going to do two things at once. First, build a reference architecture for monolithic Quarkus apps using Domain-Driven Design and Hexagonal Architecture — the kind of monolith you'll still want to maintain three years from now. Second, prove that this style of architecture is a strong fit for AI-assisted development by having four different coding agents — Claude Code, Codex, Gemini CLI, and Copilot CLI — independently build the same app from the same spec, in parallel. We'll see whether the architectural commitments hold up across all four CLIs."*
+- State both goals once, clean. Don't over-explain — the rest of the show is the explanation.
 
 ---
 
@@ -144,7 +147,7 @@ If any of those fail, escalate to the cloud-VM workaround.
   3. The Rating uniqueness invariant box (call attention — *"this is the trickiest one"*)
   4. The "DO NOT" list at the bottom — `@Entity` in `domain/`, business logic in REST, cross-context service calls
 - Switch to a 4-pane terminal layout. In each pane, paste the prepared kickoff command. Spawn Claude Code, Codex, Gemini CLI, Copilot CLI sequentially — each picks up the spec URL.
-- Confirm all four are progressing (look for "Cloning…" / "Reading SPEC.md"). Then walk away from the terminals — they'll run in the background until the shootout.
+- Confirm all four are progressing (look for "Cloning…" / "Reading SPEC.md"). Then walk away from the terminals — they'll run in the background until the examination segment.
 
 **Don't get sucked into watching them.** Snap back to the IDE.
 
@@ -152,7 +155,7 @@ If any of those fail, escalate to the cloud-VM workaround.
 
 ## 0:08 – 0:33 — Live-coding tour of DDD
 
-**Goal:** show the SAME refactor that agents are about to (hopefully) replicate, so the audience has a mental template before the comparison.
+**Goal:** teach DDD by refactoring an anemic CRUD endpoint into rich domain constructs, on its own merits. This serves Goal A directly — it's the reference architecture lesson, valuable to viewers who care nothing about agents — and gives viewers a mental template for what the agents are likely to produce. The lesson stands without the agentic frame.
 
 Start branch: `live/start` — naive CRUD endpoint for "submit abstract."
 
@@ -215,13 +218,15 @@ public class AbstractResource {
 
 ---
 
-## 0:43 – 0:58 — Agent shootout
+## 0:43 – 0:58 — Agent examination
 
-**Goal:** open each agent's output side-by-side and grade against the rubric, in order. ~3 minutes per agent + a closing synthesis.
+**Goal:** walk through all four agent outputs side-by-side against the architectural checklist. The framing is *proof points across CLIs*, not a competition. Convergence on the reference architecture across four model providers, four training datasets, and four CLIs is the headline evidence for Goal B — it means a team using any of these tools can apply this pattern. Variation between agents is data, not failure: it shows where the spec might benefit from more specificity. ~3 minutes per agent + a closing synthesis.
 
-### The rubric (post on screen)
+### The architectural checklist (post on screen)
 
-| # | Criterion | Pass | Fail |
+Seven architectural commitments to look for in each agent's output. The framing is "would a Quarkus DDD team be happy to maintain this?" — not "did it pass a test."
+
+| # | Commitment | Honored looks like | Diverged looks like |
 |---|---|---|---|
 | 1 | **Domain purity** | `domain/` has zero imports of `jakarta.persistence`, `jakarta.ws.rs`, `io.quarkus.*` | Any of those imports inside `domain/` |
 | 2 | **Aggregate invariants** | `Episode.publish()` enforces all four preconditions | Any precondition lives in the use case, REST resource, or DB constraint |
@@ -231,17 +236,17 @@ public class AbstractResource {
 | 6 | **Cross-context references by ID** | Episode holds `Set<PersonId>`, never `Set<Person>` | Direct entity references across contexts |
 | 7 | **Rating uniqueness handling** | Use case checks + DB constraint + adapter exception translation | DB-only, or check in REST, or `EpisodeRatings` super-aggregate |
 
-### Inspection order
+### Examination order
 
-1. **Claude Code** — open in left pane. Walk the rubric top-to-bottom. Tally.
-2. **Codex** — middle-left pane. Same rubric. Note any divergence pattern (e.g., "this one made `Episode` extend `PanacheEntity`, that's a #3 fail").
+1. **Claude Code** — open in left pane. Walk the checklist top-to-bottom. Note where each commitment was honored or where the agent diverged.
+2. **Codex** — middle-left pane. Same checklist. Call out divergences in domain language (e.g., "this one made `Episode` extend `PanacheEntity` — the persistence type leaked into the aggregate").
 3. **Gemini CLI** — middle-right pane. Same.
 4. **Copilot CLI** — right pane. Same.
-5. **Synthesis** (last 3 min): which patterns held up across all four? Which collapsed? Was there a *consistent* failure mode? *"If three out of four agents put the rating uniqueness check in the REST resource, that tells us something about how 'pattern machines' default — and why the spec has to be explicit about where invariants live."*
+5. **Synthesis** (last 3 min): which architectural commitments held up across all four CLIs? Where did agents differ in adapter-level choices? *"Convergence across four different agents on a strict architectural style is the headline result. It means a team using any of these CLIs can apply this pattern with confidence — the architecture, not the agent, is doing the work. Where agents diverged, the spec could be more specific without changing what we're building."*
 
 ### Teaching note: the rating uniqueness invariant
 
-This is the single most informative grading moment. Take the time on it (3-4 min). The point isn't whether each agent got it right — it's *where each one put the rule.*
+This is the single most informative examination moment. Take the time on it (3-4 min). The point isn't whether each agent "passed" — it's *where each one put the rule*, because the where reveals each CLI's defaults.
 
 There are four candidate locations for the rule "one rating per (EpisodeId, AuthorHandle)":
 
@@ -282,7 +287,7 @@ The DB constraint is a safety net, not the rule. The rule is in the use case.
 2. Did the schema declare `UNIQUE (episode_id, author_handle)`? *(Required.)*
 3. Did the adapter translate `ConstraintViolationException → AlreadyRated`? *(Required.)*
 
-Common failure modes to call out by name when you see them:
+Common divergences to call out by name when you see them:
 - **DB-only** — *"This agent went straight to a constraint. The rule is invisible in the domain. If I delete the DDL, the application has no idea this rule ever existed."*
 - **Check in the REST resource** — *"Same logic, wrong layer. Now the rule lives in JAX-RS code, which means anyone writing a different adapter — say, a CLI or a message consumer — has to remember to re-implement it."*
 - **`EpisodeRatings` super-aggregate** — *"Pure DDD on paper, but watch what happens at scale: every rating submission for a popular episode loads every prior rating into memory."*
@@ -291,9 +296,11 @@ Common failure modes to call out by name when you see them:
 
 ## 0:58 – 1:00 — Wrap
 
-- Restate the thesis with evidence: *"You just watched four agents try to build the same app. Where the spec was specific about where business rules live, they got it right. Where it wasn't, they put the rules wherever was structurally convenient — usually in the REST layer. That's not an agent problem. That's an architecture problem the agent inherited."*
-- Plug the GitHub repo. Show the URL on screen. Note that all four agent branches are preserved for viewers to compare on their own time.
-- *"Quarkus optimizes infrastructure. DDD optimizes the business. Together, they make agentic development safe — because the agents can't corrupt what's already protected."*
+- Restate both goals with evidence:
+  - *"Goal A: a public reference architecture for monolithic Quarkus apps using Domain-Driven Design and Hexagonal Architecture. The repo at `<URL>` is the artifact — clone it, study it, copy from it. Whether you use AI in your workflow or not, it's a working example of the kind of monolith you'll still be able to maintain three years from now."*
+  - *"Goal B: proof that this style of architecture is a strong fit for agentic development. Four different CLIs, four different model providers, working from the same spec, in parallel — and they converged on the architectural commitments that matter. Any team using any of these tools can apply this pattern."*
+- Plug the GitHub repo. Show the URL on screen. Note that all four agent branches are preserved for viewers to examine on their own time.
+- *"Quarkus optimizes infrastructure. DDD optimizes the business. Together, they make a monolith that is **both** maintainable for humans and safe for agents — because the agents can't corrupt what's already protected by structure."*
 
 ---
 
@@ -303,7 +310,7 @@ Common failure modes to call out by name when you see them:
 |---|---|
 | A Docker Sandbox crashes mid-run | Switch to that agent's pre-staged branch (`agent/<name>`) without commentary. Move on. |
 | Live-coding compile error you can't fix in 30 seconds | Cut to the reference app's `Episode.java`, narrate the destination, return to the refactor on the next clean step. |
-| Agent finishes a context but not all four | Grade only the contexts it completed. *"Three out of four contexts in 50 minutes — interesting that it prioritized X over Y."* This is also data. |
+| Agent finishes a context but not all four | Examine only the contexts it completed. *"Three out of four contexts in 50 minutes — interesting that it prioritized X over Y."* Still useful as proof points for Goal B with caveats. |
 | Two agents produce nearly identical output | Lean into it. *"That tells us something about the spec — when the spec is precise, agents converge. When it's loose, they diverge."* |
 
 ---
