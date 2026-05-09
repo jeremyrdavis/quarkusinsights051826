@@ -1,5 +1,7 @@
 package io.arrogantprogrammer.quarkusinsights.programming.domain;
 
+import io.arrogantprogrammer.quarkusinsights.shared.EpisodeId;
+
 /**
  * Thrown when {@link Episode#publish()} is invoked on an episode that
  * has zero speakers assigned.
@@ -13,10 +15,22 @@ package io.arrogantprogrammer.quarkusinsights.programming.domain;
  */
 public class MissingSpeaker extends RuntimeException {
 
+    private final EpisodeId episodeId;
+
     /**
      * Creates a MissingSpeaker exception.
+     *
+     * @param episodeId the id of the episode that has no speakers
      */
-    public MissingSpeaker() {
-        super("Episode has no speakers; assignSpeaker() must be called before publish()");
+    public MissingSpeaker(EpisodeId episodeId) {
+        super("Episode " + episodeId.value() + " has no speakers; assignSpeaker() must be called before publish()");
+        this.episodeId = episodeId;
+    }
+
+    /**
+     * @return the id of the episode that triggered the exception
+     */
+    public EpisodeId episodeId() {
+        return episodeId;
     }
 }

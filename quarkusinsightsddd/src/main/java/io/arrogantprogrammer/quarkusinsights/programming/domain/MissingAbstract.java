@@ -1,5 +1,7 @@
 package io.arrogantprogrammer.quarkusinsights.programming.domain;
 
+import io.arrogantprogrammer.quarkusinsights.shared.EpisodeId;
+
 /**
  * Thrown when {@link Episode#publish()} is invoked on an episode that
  * has not yet had an abstract submitted.
@@ -13,10 +15,22 @@ package io.arrogantprogrammer.quarkusinsights.programming.domain;
  */
 public class MissingAbstract extends RuntimeException {
 
+    private final EpisodeId episodeId;
+
     /**
      * Creates a MissingAbstract exception.
+     *
+     * @param episodeId the id of the episode that has no abstract
      */
-    public MissingAbstract() {
-        super("Episode has no abstract; submitAbstract() must be called before publish()");
+    public MissingAbstract(EpisodeId episodeId) {
+        super("Episode " + episodeId.value() + " has no abstract; submitAbstract() must be called before publish()");
+        this.episodeId = episodeId;
+    }
+
+    /**
+     * @return the id of the episode that triggered the exception
+     */
+    public EpisodeId episodeId() {
+        return episodeId;
     }
 }
