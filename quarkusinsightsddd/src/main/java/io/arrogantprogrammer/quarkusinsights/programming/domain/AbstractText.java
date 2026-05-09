@@ -10,6 +10,8 @@ package io.arrogantprogrammer.quarkusinsights.programming.domain;
  * meaningful abstract requires substance; the upper bound exists to
  * keep public-facing pages compact.
  *
+ * <p>Part of the Programming bounded context, domain layer.
+ *
  * @param value the abstract text; must be non-null, non-blank,
  *     length 100..5000 chars
  */

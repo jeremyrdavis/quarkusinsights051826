@@ -17,6 +17,8 @@ import java.time.LocalDate;
  * because rehydrating an aggregate from persistence necessarily
  * requires reconstructing past AirDates.
  *
+ * <p>Part of the Programming bounded context, domain layer.
+ *
  * @param value the date; must not be null
  */
 public record AirDate(LocalDate value) {

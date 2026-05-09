@@ -9,6 +9,8 @@ package io.arrogantprogrammer.quarkusinsights.programming.domain;
  * later plans, not here in the domain layer where uniqueness across an
  * aggregate set cannot be checked).
  *
+ * <p>Part of the Programming bounded context, domain layer.
+ *
  * @param value the episode number; must be at least 1
  */
 public record EpisodeNumber(int value) {

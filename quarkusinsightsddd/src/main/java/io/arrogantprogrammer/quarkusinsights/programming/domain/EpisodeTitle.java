@@ -7,6 +7,8 @@ package io.arrogantprogrammer.quarkusinsights.programming.domain;
  * length 1..200 characters (the constructor rejects null, empty,
  * whitespace-only, or strings exceeding 200 characters).
  *
+ * <p>Part of the Programming bounded context, domain layer.
+ *
  * @param value the title text; must be non-null, non-blank,
  *     length 1..200 chars
  */

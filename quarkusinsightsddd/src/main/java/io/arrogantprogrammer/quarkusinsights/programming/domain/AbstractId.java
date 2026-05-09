@@ -13,6 +13,8 @@ import java.util.UUID;
  * Abstract entity is owned exclusively by Episode and never travels
  * across bounded contexts.
  *
+ * <p>Part of the Programming bounded context, domain layer.
+ *
  * <p>Construct via the canonical constructor, {@link #random()}, or
  * {@link #fromString(String)}. AbstractIds compare equal when their
  * wrapped UUIDs are equal.
