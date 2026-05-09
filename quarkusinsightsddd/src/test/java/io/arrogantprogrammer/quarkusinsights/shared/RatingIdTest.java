@@ -17,9 +17,11 @@ class RatingIdTest {
 
     @Test
     void equalsAndHashCodeByValue() {
-        UUID uuid = UUID.fromString("77777777-7777-7777-7777-777777777777");
-        RatingId a = new RatingId(uuid);
-        RatingId b = new RatingId(uuid);
+        UUID first = UUID.fromString("77777777-7777-7777-7777-777777777777");
+        UUID second = UUID.fromString("77777777-7777-7777-7777-777777777777");
+        // Distinct UUID objects, same value — UUID.fromString does not intern.
+        RatingId a = new RatingId(first);
+        RatingId b = new RatingId(second);
         assertEquals(a, b);
         assertEquals(a.hashCode(), b.hashCode());
     }
@@ -41,5 +43,10 @@ class RatingIdTest {
     @Test
     void fromStringRejectsInvalidUuid() {
         assertThrows(IllegalArgumentException.class, () -> RatingId.fromString("not-a-uuid"));
+    }
+
+    @Test
+    void fromStringRejectsNull() {
+        assertThrows(IllegalArgumentException.class, () -> RatingId.fromString(null));
     }
 }

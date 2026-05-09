@@ -15,6 +15,9 @@ public record RatingId(UUID value) {
     }
 
     public static RatingId fromString(String s) {
+        if (s == null) {
+            throw new IllegalArgumentException("RatingId string must not be null");
+        }
         return new RatingId(UUID.fromString(s));
     }
 }
