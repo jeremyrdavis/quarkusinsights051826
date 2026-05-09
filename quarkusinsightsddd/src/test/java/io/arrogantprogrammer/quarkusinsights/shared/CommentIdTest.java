@@ -8,6 +8,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+/**
+ * Verifies {@link CommentId} value-object semantics: null rejection in
+ * the canonical constructor, equality and hash code based on the wrapped
+ * UUID's value (not object identity), distinctness of randomly-generated
+ * IDs, round-tripping via {@link CommentId#fromString(String)}, and
+ * rejection of malformed and null strings by that factory.
+ */
 class CommentIdTest {
 
     @Test
