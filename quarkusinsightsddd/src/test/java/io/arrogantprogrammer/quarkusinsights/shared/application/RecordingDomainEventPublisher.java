@@ -1,4 +1,4 @@
-package io.arrogantprogrammer.quarkusinsights.programming.application;
+package io.arrogantprogrammer.quarkusinsights.shared.application;
 
 import io.arrogantprogrammer.quarkusinsights.shared.DomainEvent;
 
@@ -10,6 +10,9 @@ import java.util.List;
  * records every published event in order. Use case unit tests
  * inspect {@link #publishedEvents()} after calling the use case to
  * verify the right events fired.
+ *
+ * <p>Part of the shared kernel's application support — shared by all
+ * bounded-context unit test suites.
  */
 public class RecordingDomainEventPublisher implements DomainEventPublisher {
 

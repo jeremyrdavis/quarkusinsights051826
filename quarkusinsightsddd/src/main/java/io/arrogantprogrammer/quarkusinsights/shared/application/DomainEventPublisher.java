@@ -1,4 +1,4 @@
-package io.arrogantprogrammer.quarkusinsights.programming.application;
+package io.arrogantprogrammer.quarkusinsights.shared.application;
 
 import io.arrogantprogrammer.quarkusinsights.shared.DomainEvent;
 
@@ -19,7 +19,8 @@ import io.arrogantprogrammer.quarkusinsights.shared.DomainEvent;
  * ({@code RecordingDomainEventPublisher}) so use case unit tests
  * remain pure JUnit with no Quarkus startup.
  *
- * <p>Part of the Programming bounded context, application layer.
+ * <p>Part of the shared kernel's application support — used by all
+ * bounded contexts that publish domain events.
  */
 public interface DomainEventPublisher {
 

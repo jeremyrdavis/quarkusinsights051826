@@ -19,6 +19,7 @@ import io.arrogantprogrammer.quarkusinsights.programming.domain.PresenterAssigne
 import io.arrogantprogrammer.quarkusinsights.programming.domain.SpeakerAssigned;
 import io.arrogantprogrammer.quarkusinsights.shared.EpisodeId;
 import io.arrogantprogrammer.quarkusinsights.shared.PersonId;
+import io.arrogantprogrammer.quarkusinsights.shared.application.RecordingDomainEventPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

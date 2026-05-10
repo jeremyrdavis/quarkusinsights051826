@@ -6,6 +6,7 @@ import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeNumberAlr
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeRepository;
 import io.arrogantprogrammer.quarkusinsights.shared.DomainEvent;
 import io.arrogantprogrammer.quarkusinsights.shared.EpisodeId;
+import io.arrogantprogrammer.quarkusinsights.shared.application.DomainEventPublisher;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
