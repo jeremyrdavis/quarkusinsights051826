@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{episode.title.value()} — Quarkus Insights</title>
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .meta { color: #666; font-size: 0.9rem; }
+    .person { display: inline-block; margin-right: 0.5rem; padding: 0.2rem 0.5rem; background: #eef; border-radius: 3px; }
+    .comment { border-left: 3px solid #ccc; padding: 0.5rem 1rem; margin: 0.5rem 0; }
+    form { margin: 1rem 0; padding: 1rem; background: #f8f8f8; border-radius: 5px; }
+    label { display: block; margin: 0.5rem 0 0.2rem; }
+    input, textarea, select, button { font-family: inherit; padding: 0.4rem; }
+    .error { color: #c00; }
+  </style>
+</head>
+<body>
+  <nav><a href="/">Home</a> | <a href="/episodes">All episodes</a></nav>
+  <h1>#{episode.number.value()} — {episode.title.value()}</h1>
+  <p class="meta">{episode.status} | airs/aired {episode.airDate.value()}</p>
+
+  {#if episode.abstract_.isPresent}<p>{episode.abstract_.get().value()}</p>{/if}
+
+  {#if episode.presenters}
+    <div><strong>Presenters:</strong>
+      {#for p in episode.presenters}<span class="person">{p.displayName}</span>{/for}
+    </div>
+  {/if}
+  {#if episode.speakers}
+    <div><strong>Speakers:</strong>
+      {#for s in episode.speakers}<span class="person">{s.displayName}</span>{/for}
+    </div>
+  {/if}
+
+  <h2>Ratings <span id="rating-summary">({episode.ratingCount}{#if episode.ratingCount > 0}, avg {episode.averageRating.get()}{/if})</span></h2>
+  <form hx-post="/episodes/{episode.number.value()}/ratings" hx-target="#rating-summary" hx-swap="outerHTML">
+    <label>Author handle <input name="authorHandle" required pattern="[a-zA-Z0-9_-]+"></label>
+    <label>Stars
+      <select name="stars" required>
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+    </label>
+    <button type="submit">Submit rating</button>
+  </form>
+
+  <h2>Comments ({episode.commentCount})</h2>
+  <div id="comment-list">
+    {#for c in comments}
+      <div class="comment"><strong>{c.author().value()}</strong>: {c.body().value()}<span class="meta"> — {c.submittedAt()}</span></div>
+    {/for}
+  </div>
+  <form hx-post="/episodes/{episode.number.value()}/comments" hx-target="#comment-list" hx-swap="beforeend">
+    <label>Author handle <input name="authorHandle" required pattern="[a-zA-Z0-9_-]+"></label>
+    <label>Comment <textarea name="body" required minlength="1" maxlength="2000"></textarea></label>
+    <button type="submit">Submit comment</button>
+  </form>
+</body>
+</html>

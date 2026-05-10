@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quarkus Insights — All Episodes</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .episode { border-bottom: 1px solid #ddd; padding: 1rem 0; }
+    .meta { color: #666; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>All Quarkus Insights episodes</h1>
+  <nav><a href="/">Home</a> | <a href="/episodes">All episodes</a></nav>
+  <hr>
+  {#if episodes.isEmpty}
+    <p>No published episodes yet.</p>
+  {#else}
+    {#for e in episodes}
+      <div class="episode">
+        <h3><a href="/episodes/{e.number.value()}">#{e.number.value()} — {e.title.value()}</a></h3>
+        <p class="meta">aired {e.airDate.value()}</p>
+        {#if e.abstract_.isPresent}<p>{e.abstract_.get().value()}</p>{/if}
+      </div>
+    {/for}
+  {/if}
+</body>
+</html>

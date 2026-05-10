@@ -45,9 +45,14 @@ public class PublicEpisodeViewMapper {
      * @return the assembled read-model record; never null
      */
     public PublicEpisodeView toView(PublicEpisodeViewEntity entity) {
-        Optional<AbstractText> abstract_ = entity.abstractText != null
-            ? Optional.of(new AbstractText(entity.abstractText))
-            : Optional.empty();
+        Optional<AbstractText> abstract_;
+        if (entity.abstractText == null || entity.abstractText.length() < 100) {
+            // null or sentinel placeholder (e.g. "[abstract submitted — text pending enrichment]")
+            // stored by EpisodeProjector when the AbstractSubmitted event does not carry text
+            abstract_ = Optional.empty();
+        } else {
+            abstract_ = Optional.of(new AbstractText(entity.abstractText));
+        }
 
         List<PresenterSummary> presenters = entity.presenters.stream()
             .sorted((a, b) -> a.personId.toString().compareTo(b.personId.toString()))

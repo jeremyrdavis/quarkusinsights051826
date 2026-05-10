@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Quarkus Insights</title>
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .meta { color: #666; font-size: 0.9rem; }
+    .person { display: inline-block; margin-right: 0.5rem; padding: 0.2rem 0.5rem; background: #eef; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Quarkus Insights</h1>
+  <nav><a href="/">Home</a> | <a href="/episodes">All episodes</a></nav>
+  <hr>
+  {#if upcoming}
+    <h2>Next episode: {upcoming.title.value()}</h2>
+    <p class="meta">Episode #{upcoming.number.value()} — airs {upcoming.airDate.value()}</p>
+    {#if upcoming.abstract_.isPresent}
+      <p>{upcoming.abstract_.get().value()}</p>
+    {/if}
+    {#if upcoming.presenters}
+      <div><strong>Presenters:</strong>
+        {#for p in upcoming.presenters}<span class="person">{p.displayName}</span>{/for}
+      </div>
+    {/if}
+    {#if upcoming.speakers}
+      <div><strong>Speakers:</strong>
+        {#for s in upcoming.speakers}<span class="person">{s.displayName}</span>{/for}
+      </div>
+    {/if}
+    <p><a href="/episodes/{upcoming.number.value()}">View details</a></p>
+  {#else}
+    <p>No upcoming episodes scheduled.</p>
+  {/if}
+</body>
+</html>
