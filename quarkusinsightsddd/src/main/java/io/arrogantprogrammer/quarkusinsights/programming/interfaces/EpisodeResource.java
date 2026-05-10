@@ -1,19 +1,13 @@
 package io.arrogantprogrammer.quarkusinsights.programming.interfaces;
 
 import io.arrogantprogrammer.quarkusinsights.programming.application.AssignPresenterCommand;
-import io.arrogantprogrammer.quarkusinsights.programming.application.AssignPresenterUseCase;
 import io.arrogantprogrammer.quarkusinsights.programming.application.AssignSpeakerCommand;
-import io.arrogantprogrammer.quarkusinsights.programming.application.AssignSpeakerUseCase;
 import io.arrogantprogrammer.quarkusinsights.programming.application.CancelEpisodeCommand;
-import io.arrogantprogrammer.quarkusinsights.programming.application.CancelEpisodeUseCase;
+import io.arrogantprogrammer.quarkusinsights.programming.application.EpisodeService;
 import io.arrogantprogrammer.quarkusinsights.programming.application.GoLiveCommand;
-import io.arrogantprogrammer.quarkusinsights.programming.application.GoLiveUseCase;
 import io.arrogantprogrammer.quarkusinsights.programming.application.PublishEpisodeCommand;
-import io.arrogantprogrammer.quarkusinsights.programming.application.PublishEpisodeUseCase;
 import io.arrogantprogrammer.quarkusinsights.programming.application.ScheduleEpisodeCommand;
-import io.arrogantprogrammer.quarkusinsights.programming.application.ScheduleEpisodeUseCase;
 import io.arrogantprogrammer.quarkusinsights.programming.application.SubmitAbstractCommand;
-import io.arrogantprogrammer.quarkusinsights.programming.application.SubmitAbstractUseCase;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.AbstractText;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.AirDate;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.Episode;
@@ -41,11 +35,12 @@ import java.util.UUID;
 /**
  * REST adapter for the Programming bounded context.
  *
- * <p>Wires HTTP requests to the seven application-layer use cases and
- * translates the post-mutation Episode state into a flat
- * {@link EpisodeResponse} for clients. Each method is
- * {@code @Transactional} so the use case call and the subsequent
- * read-after-write {@code findById} share a single Hibernate session.
+ * <p>Wires HTTP requests to {@link EpisodeService} (the application-
+ * layer service for the Episode aggregate) and translates the
+ * post-mutation Episode state into a flat {@link EpisodeResponse}
+ * for clients. Each method is {@code @Transactional} so the service
+ * call and the subsequent read-after-write {@code findById} share a
+ * single Hibernate session.
  *
  * <p>Endpoint table:
  * <ul>
@@ -59,7 +54,7 @@ import java.util.UUID;
  *   <li>POST /episodes/{id}/cancel — cancel</li>
  * </ul>
  *
- * <p>Domain exceptions thrown by the use cases or the aggregate
+ * <p>Domain exceptions thrown by the service or the aggregate
  * propagate out of these methods and are translated to HTTP statuses
  * by the {@code ExceptionMapper}s in this package (400, 404, 409).
  *
@@ -71,13 +66,7 @@ import java.util.UUID;
 @Consumes(MediaType.APPLICATION_JSON)
 public class EpisodeResource {
 
-    @Inject ScheduleEpisodeUseCase scheduleUseCase;
-    @Inject SubmitAbstractUseCase submitAbstractUseCase;
-    @Inject AssignPresenterUseCase assignPresenterUseCase;
-    @Inject AssignSpeakerUseCase assignSpeakerUseCase;
-    @Inject GoLiveUseCase goLiveUseCase;
-    @Inject PublishEpisodeUseCase publishUseCase;
-    @Inject CancelEpisodeUseCase cancelUseCase;
+    @Inject EpisodeService episodeService;
     @Inject EpisodeRepository repository;
     @Inject EpisodeResponseMapper responseMapper;
 
@@ -85,7 +74,7 @@ public class EpisodeResource {
      * Schedules a new Episode.
      *
      * @param request the schedule request
-     * @return 201 Created with Location header pointing at GET /episodes/{id}
+     * @return 201 Created with Location header
      */
     @POST
     @Transactional
@@ -95,7 +84,7 @@ public class EpisodeResource {
             new EpisodeTitle(request.title()),
             new AirDate(request.airDate())
         );
-        EpisodeId id = scheduleUseCase.handle(cmd);
+        EpisodeId id = episodeService.schedule(cmd);
         Episode created = loadOrThrow(id);
         return Response.created(URI.create("/episodes/" + id.value()))
             .entity(responseMapper.toResponse(created))
@@ -104,9 +93,6 @@ public class EpisodeResource {
 
     /**
      * Loads an Episode.
-     *
-     * @param id the Episode id
-     * @return 200 OK with the Episode payload (404 if not found via the ExceptionMapper)
      */
     @GET
     @Path("/{id}")
@@ -117,57 +103,42 @@ public class EpisodeResource {
 
     /**
      * Submits the Episode's abstract.
-     *
-     * @param id      the Episode id
-     * @param request the abstract request
-     * @return 200 OK with the updated Episode payload
      */
     @POST
     @Path("/{id}/abstract")
     @Transactional
     public EpisodeResponse submitAbstract(@PathParam("id") UUID id, SubmitAbstractRequest request) {
         EpisodeId episodeId = new EpisodeId(id);
-        submitAbstractUseCase.handle(new SubmitAbstractCommand(episodeId, new AbstractText(request.text())));
+        episodeService.submitAbstract(new SubmitAbstractCommand(episodeId, new AbstractText(request.text())));
         return responseMapper.toResponse(loadOrThrow(episodeId));
     }
 
     /**
      * Assigns a presenter.
-     *
-     * @param id      the Episode id
-     * @param request the assignment request carrying the PersonId
-     * @return 200 OK with the updated Episode payload
      */
     @POST
     @Path("/{id}/presenters")
     @Transactional
     public EpisodeResponse assignPresenter(@PathParam("id") UUID id, AssignPersonRequest request) {
         EpisodeId episodeId = new EpisodeId(id);
-        assignPresenterUseCase.handle(new AssignPresenterCommand(episodeId, new PersonId(request.personId())));
+        episodeService.assignPresenter(new AssignPresenterCommand(episodeId, new PersonId(request.personId())));
         return responseMapper.toResponse(loadOrThrow(episodeId));
     }
 
     /**
      * Assigns a speaker.
-     *
-     * @param id      the Episode id
-     * @param request the assignment request carrying the PersonId
-     * @return 200 OK with the updated Episode payload
      */
     @POST
     @Path("/{id}/speakers")
     @Transactional
     public EpisodeResponse assignSpeaker(@PathParam("id") UUID id, AssignPersonRequest request) {
         EpisodeId episodeId = new EpisodeId(id);
-        assignSpeakerUseCase.handle(new AssignSpeakerCommand(episodeId, new PersonId(request.personId())));
+        episodeService.assignSpeaker(new AssignSpeakerCommand(episodeId, new PersonId(request.personId())));
         return responseMapper.toResponse(loadOrThrow(episodeId));
     }
 
     /**
      * Transitions the Episode to LIVE.
-     *
-     * @param id the Episode id
-     * @return 200 OK with the updated Episode payload
      */
     @POST
     @Path("/{id}/go-live")
@@ -175,15 +146,12 @@ public class EpisodeResource {
     @Transactional
     public EpisodeResponse goLive(@PathParam("id") UUID id) {
         EpisodeId episodeId = new EpisodeId(id);
-        goLiveUseCase.handle(new GoLiveCommand(episodeId));
+        episodeService.goLive(new GoLiveCommand(episodeId));
         return responseMapper.toResponse(loadOrThrow(episodeId));
     }
 
     /**
      * Publishes the Episode.
-     *
-     * @param id the Episode id
-     * @return 200 OK with the updated Episode payload
      */
     @POST
     @Path("/{id}/publish")
@@ -191,23 +159,19 @@ public class EpisodeResource {
     @Transactional
     public EpisodeResponse publish(@PathParam("id") UUID id) {
         EpisodeId episodeId = new EpisodeId(id);
-        publishUseCase.handle(new PublishEpisodeCommand(episodeId));
+        episodeService.publish(new PublishEpisodeCommand(episodeId));
         return responseMapper.toResponse(loadOrThrow(episodeId));
     }
 
     /**
      * Cancels the Episode.
-     *
-     * @param id      the Episode id
-     * @param request the cancel request carrying the reason
-     * @return 200 OK with the updated Episode payload
      */
     @POST
     @Path("/{id}/cancel")
     @Transactional
     public EpisodeResponse cancel(@PathParam("id") UUID id, CancelRequest request) {
         EpisodeId episodeId = new EpisodeId(id);
-        cancelUseCase.handle(new CancelEpisodeCommand(episodeId, request.reason()));
+        episodeService.cancel(new CancelEpisodeCommand(episodeId, request.reason()));
         return responseMapper.toResponse(loadOrThrow(episodeId));
     }
 
