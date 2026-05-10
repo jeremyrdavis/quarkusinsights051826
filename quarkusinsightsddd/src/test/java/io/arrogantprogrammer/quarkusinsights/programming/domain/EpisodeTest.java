@@ -188,4 +188,137 @@ class EpisodeTest {
             assertThrows(IllegalEpisodeTransition.class, () -> episode.submitAbstract(sample));
         }
     }
+
+    @Nested
+    class AssignPresenter {
+
+        @Test
+        void addsThePresenter() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId person =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            episode.assignPresenter(person);
+            assertTrue(episode.presenters().contains(person));
+        }
+
+        @Test
+        void recordsPresenterAssignedEvent() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.clearRecordedEvents();
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId person =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            episode.assignPresenter(person);
+            List<DomainEvent> events = episode.recordedEvents();
+            assertEquals(1, events.size());
+            PresenterAssigned e = assertInstanceOf(PresenterAssigned.class, events.get(0));
+            assertEquals(episode.id(), e.episodeId());
+            assertEquals(person, e.personId());
+        }
+
+        @Test
+        void isIdempotentAndDoesNotEmitDuplicateEvent() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId person =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            episode.assignPresenter(person);
+            episode.clearRecordedEvents();
+            episode.assignPresenter(person);
+            assertTrue(episode.recordedEvents().isEmpty());
+            assertEquals(1, episode.presenters().size());
+        }
+
+        @Test
+        void allowedWhileLive() {
+            Episode episode = liveEpisodeReadyToPublish();
+            episode.clearRecordedEvents();
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId additional =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            episode.assignPresenter(additional);
+            assertTrue(episode.presenters().contains(additional));
+            assertEquals(1, episode.recordedEvents().size());
+        }
+
+        @Test
+        void rejectsCallWhenPublished() {
+            Episode episode = liveEpisodeReadyToPublish();
+            episode.publish();
+            assertThrows(IllegalEpisodeTransition.class,
+                () -> episode.assignPresenter(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random()));
+        }
+
+        @Test
+        void rejectsCallWhenCanceled() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.cancel("any reason");
+            assertThrows(IllegalEpisodeTransition.class,
+                () -> episode.assignPresenter(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random()));
+        }
+
+        @Test
+        void rejectsNullPersonId() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            assertThrows(IllegalArgumentException.class, () -> episode.assignPresenter(null));
+        }
+    }
+
+    @Nested
+    class AssignSpeaker {
+
+        @Test
+        void addsTheSpeaker() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId person =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            episode.assignSpeaker(person);
+            assertTrue(episode.speakers().contains(person));
+        }
+
+        @Test
+        void recordsSpeakerAssignedEvent() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.clearRecordedEvents();
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId person =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            episode.assignSpeaker(person);
+            List<DomainEvent> events = episode.recordedEvents();
+            assertEquals(1, events.size());
+            SpeakerAssigned e = assertInstanceOf(SpeakerAssigned.class, events.get(0));
+            assertEquals(episode.id(), e.episodeId());
+            assertEquals(person, e.personId());
+        }
+
+        @Test
+        void isIdempotentAndDoesNotEmitDuplicateEvent() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId person =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            episode.assignSpeaker(person);
+            episode.clearRecordedEvents();
+            episode.assignSpeaker(person);
+            assertTrue(episode.recordedEvents().isEmpty());
+            assertEquals(1, episode.speakers().size());
+        }
+
+        @Test
+        void rejectsCallWhenPublished() {
+            Episode episode = liveEpisodeReadyToPublish();
+            episode.publish();
+            assertThrows(IllegalEpisodeTransition.class,
+                () -> episode.assignSpeaker(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random()));
+        }
+
+        @Test
+        void rejectsCallWhenCanceled() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.cancel("any reason");
+            assertThrows(IllegalEpisodeTransition.class,
+                () -> episode.assignSpeaker(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random()));
+        }
+
+        @Test
+        void rejectsNullPersonId() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            assertThrows(IllegalArgumentException.class, () -> episode.assignSpeaker(null));
+        }
+    }
 }
