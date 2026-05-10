@@ -44,12 +44,12 @@ import java.util.UUID;
  *
  * <p>Endpoint table:
  * <ul>
- *   <li>POST /people — register</li>
- *   <li>GET /people/{id} — load</li>
- *   <li>PUT /people/{id}/name — rename</li>
- *   <li>PUT /people/{id}/bio — update biography</li>
- *   <li>PUT /people/{id}/socials — update social links</li>
- *   <li>GET /people?page=&amp;size= — paginated list</li>
+ *   <li>POST /api/people — register</li>
+ *   <li>GET /api/people/{id} — load</li>
+ *   <li>PUT /api/people/{id}/name — rename</li>
+ *   <li>PUT /api/people/{id}/bio — update biography</li>
+ *   <li>PUT /api/people/{id}/socials — update social links</li>
+ *   <li>GET /api/people?page=&amp;size= — paginated list</li>
  * </ul>
  *
  * <p>Domain exceptions thrown by the service or the aggregate propagate
@@ -60,7 +60,7 @@ import java.util.UUID;
  *
  * <p>Part of the People bounded context, interfaces layer.
  */
-@Path("/people")
+@Path("/api/people")
 @ApplicationScoped
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -86,7 +86,7 @@ public class PersonResource {
         );
         PersonId id = personService.register(cmd);
         Person created = loadOrThrow(id);
-        return Response.created(URI.create("/people/" + id.value()))
+        return Response.created(URI.create("/api/people/" + id.value()))
             .entity(responseMapper.toResponse(created))
             .build();
     }

@@ -37,7 +37,7 @@ class CommentResourceTest {
             .body("{\"episodeId\":\"" + episodeId + "\","
                 + "\"authorHandle\":\"" + authorHandle + "\","
                 + "\"body\":\"" + body + "\"}")
-            .when().post("/comments")
+            .when().post("/api/comments")
             .then().statusCode(201)
             .body("id", notNullValue())
             .body("authorHandle", equalTo(authorHandle))
@@ -54,7 +54,7 @@ class CommentResourceTest {
             .body("{\"episodeId\":\"" + episodeId + "\","
                 + "\"authorHandle\":\"" + handle + "\","
                 + "\"body\":\"What a great episode!\"}")
-            .when().post("/comments")
+            .when().post("/api/comments")
             .then().statusCode(201)
             .header("Location", notNullValue())
             .body("id", notNullValue())
@@ -70,7 +70,7 @@ class CommentResourceTest {
         UUID episodeId = UUID.randomUUID();
         String id = submitComment(episodeId, handle, "Get me by id");
 
-        given().when().get("/comments/" + id)
+        given().when().get("/api/comments/" + id)
             .then().statusCode(200)
             .body("id", equalTo(id))
             .body("body", equalTo("Get me by id"));
@@ -78,7 +78,7 @@ class CommentResourceTest {
 
     @Test
     void getReturns404WhenCommentMissing() {
-        given().when().get("/comments/" + UUID.randomUUID())
+        given().when().get("/api/comments/" + UUID.randomUUID())
             .then().statusCode(404)
             .body("error", equalTo("CommentNotFound"));
     }
@@ -92,13 +92,13 @@ class CommentResourceTest {
         given()
             .contentType("application/json")
             .body("{\"body\":\"Edited text here\"}")
-            .when().put("/comments/" + id)
+            .when().put("/api/comments/" + id)
             .then().statusCode(200)
             .body("id", equalTo(id))
             .body("body", equalTo("Edited text here"));
 
         // Verify via GET
-        given().when().get("/comments/" + id)
+        given().when().get("/api/comments/" + id)
             .then().statusCode(200)
             .body("body", equalTo("Edited text here"));
     }
@@ -115,7 +115,7 @@ class CommentResourceTest {
         String id3 = submitComment(episodeId, h3, "Third comment");
 
         given()
-            .when().get("/comments/by-episode/" + episodeId)
+            .when().get("/api/comments/by-episode/" + episodeId)
             .then().statusCode(200)
             .body("", hasSize(3))
             .body("[0].id", equalTo(id1))
@@ -126,7 +126,7 @@ class CommentResourceTest {
     @Test
     void listByEpisodeReturnsEmptyForUnknownEpisode() {
         given()
-            .when().get("/comments/by-episode/" + UUID.randomUUID())
+            .when().get("/api/comments/by-episode/" + UUID.randomUUID())
             .then().statusCode(200)
             .body("", hasSize(0));
     }

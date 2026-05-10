@@ -40,7 +40,7 @@ class RatingResourceTest {
             .body("{\"episodeId\":\"" + episodeId + "\","
                 + "\"authorHandle\":\"" + authorHandle + "\","
                 + "\"stars\":" + stars + "}")
-            .when().post("/ratings")
+            .when().post("/api/ratings")
             .then().statusCode(201)
             .body("id", notNullValue())
             .body("stars", equalTo(stars))
@@ -57,7 +57,7 @@ class RatingResourceTest {
             .body("{\"episodeId\":\"" + episodeId + "\","
                 + "\"authorHandle\":\"" + handle + "\","
                 + "\"stars\":5}")
-            .when().post("/ratings")
+            .when().post("/api/ratings")
             .then().statusCode(201)
             .header("Location", notNullValue())
             .body("id", notNullValue())
@@ -73,7 +73,7 @@ class RatingResourceTest {
         UUID episodeId = UUID.randomUUID();
         String id = submitRating(episodeId, handle, 3);
 
-        given().when().get("/ratings/" + id)
+        given().when().get("/api/ratings/" + id)
             .then().statusCode(200)
             .body("id", equalTo(id))
             .body("stars", equalTo(3));
@@ -81,7 +81,7 @@ class RatingResourceTest {
 
     @Test
     void getReturns404WhenRatingMissing() {
-        given().when().get("/ratings/" + UUID.randomUUID())
+        given().when().get("/api/ratings/" + UUID.randomUUID())
             .then().statusCode(404)
             .body("error", equalTo("RatingNotFound"));
     }
@@ -98,7 +98,7 @@ class RatingResourceTest {
         String id3 = submitRating(episodeId, h3, 1);
 
         given()
-            .when().get("/ratings/by-episode/" + episodeId)
+            .when().get("/api/ratings/by-episode/" + episodeId)
             .then().statusCode(200)
             .body("", hasSize(3))
             .body("[0].id", equalTo(id1))
@@ -109,7 +109,7 @@ class RatingResourceTest {
     @Test
     void listByEpisodeReturnsEmptyForUnknownEpisode() {
         given()
-            .when().get("/ratings/by-episode/" + UUID.randomUUID())
+            .when().get("/api/ratings/by-episode/" + UUID.randomUUID())
             .then().statusCode(200)
             .body("", hasSize(0));
     }
@@ -137,7 +137,7 @@ class RatingResourceTest {
             .body("{\"episodeId\":\"" + episodeId + "\","
                 + "\"authorHandle\":\"" + handle + "\","
                 + "\"stars\":2}")
-            .when().post("/ratings")
+            .when().post("/api/ratings")
             .then().statusCode(409)
             .body("error", equalTo("AlreadyRated"))
             .body("existingRatingId", equalTo(firstId));

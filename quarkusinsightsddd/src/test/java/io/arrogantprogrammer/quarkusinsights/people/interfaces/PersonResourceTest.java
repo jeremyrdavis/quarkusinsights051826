@@ -40,7 +40,7 @@ class PersonResourceTest {
             .body("{\"name\":{\"first\":\"Holly\",\"last\":\"Cummins\"}," +
                   "\"email\":\"" + email + "\"," +
                   "\"bio\":\"" + VALID_BIO + "\"}")
-            .when().post("/people")
+            .when().post("/api/people")
             .then().statusCode(201)
             .body("id", notNullValue())
             .extract().path("id");
@@ -54,7 +54,7 @@ class PersonResourceTest {
             .body("{\"name\":{\"first\":\"Holly\",\"last\":\"Cummins\"}," +
                   "\"email\":\"" + email + "\"," +
                   "\"bio\":\"" + VALID_BIO + "\"}")
-            .when().post("/people")
+            .when().post("/api/people")
             .then().statusCode(201)
             .header("Location", notNullValue())
             .body("id", notNullValue())
@@ -68,7 +68,7 @@ class PersonResourceTest {
         String email = nextHandle();
         String id = registerPerson(email);
 
-        given().when().get("/people/" + id)
+        given().when().get("/api/people/" + id)
             .then().statusCode(200)
             .body("id", equalTo(id))
             .body("email", equalTo(email))
@@ -82,7 +82,7 @@ class PersonResourceTest {
         given()
             .contentType("application/json")
             .body("{\"name\":{\"first\":\"James\",\"last\":\"Cummins\"}}")
-            .when().put("/people/" + id + "/name")
+            .when().put("/api/people/" + id + "/name")
             .then().statusCode(200)
             .body("name.first", equalTo("James"))
             .body("name.last", equalTo("Cummins"))
@@ -97,7 +97,7 @@ class PersonResourceTest {
         given()
             .contentType("application/json")
             .body("{\"text\":\"" + newBio + "\"}")
-            .when().put("/people/" + id + "/bio")
+            .when().put("/api/people/" + id + "/bio")
             .then().statusCode(200)
             .body("bio", equalTo(newBio));
     }
@@ -112,7 +112,7 @@ class PersonResourceTest {
             .body("{\"twitter\":\"https://twitter.com/holly\"," +
                   "\"linkedin\":\"https://linkedin.com/in/holly\"," +
                   "\"website\":\"https://holly.dev\"}")
-            .when().put("/people/" + id + "/socials")
+            .when().put("/api/people/" + id + "/socials")
             .then().statusCode(200)
             .body("socials.twitter", equalTo("https://twitter.com/holly"))
             .body("socials.linkedin", equalTo("https://linkedin.com/in/holly"))
@@ -122,7 +122,7 @@ class PersonResourceTest {
         given()
             .contentType("application/json")
             .body("{\"twitter\":null,\"linkedin\":null,\"website\":null}")
-            .when().put("/people/" + id + "/socials")
+            .when().put("/api/people/" + id + "/socials")
             .then().statusCode(200)
             .body("socials.twitter", equalTo(null))
             .body("socials.linkedin", equalTo(null))
@@ -131,7 +131,7 @@ class PersonResourceTest {
 
     @Test
     void getReturns404WhenPersonMissing() {
-        given().when().get("/people/" + UUID.randomUUID())
+        given().when().get("/api/people/" + UUID.randomUUID())
             .then().statusCode(404)
             .body("error", equalTo("PersonNotFound"));
     }
@@ -143,7 +143,7 @@ class PersonResourceTest {
             .body("{\"name\":{\"first\":\"Holly\",\"last\":\"Cummins\"}," +
                   "\"email\":\"not-an-email\"," +
                   "\"bio\":\"" + VALID_BIO + "\"}")
-            .when().post("/people")
+            .when().post("/api/people")
             .then().statusCode(400)
             .body("error", equalTo("IllegalArgumentException"));
     }
@@ -155,7 +155,7 @@ class PersonResourceTest {
             .body("{\"name\":{\"first\":\"Holly\",\"last\":\"Cummins\"}," +
                   "\"email\":\"" + nextHandle() + "\"," +
                   "\"bio\":\"Too short\"}")
-            .when().post("/people")
+            .when().post("/api/people")
             .then().statusCode(400)
             .body("error", equalTo("IllegalArgumentException"));
     }
@@ -171,7 +171,7 @@ class PersonResourceTest {
         given()
             .queryParam("page", "0")
             .queryParam("size", "2")
-            .when().get("/people")
+            .when().get("/api/people")
             .then().statusCode(200)
             .body("$", hasSize(2));
     }

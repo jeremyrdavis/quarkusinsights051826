@@ -33,7 +33,7 @@ class EpisodeResourceTest {
         return given()
             .contentType("application/json")
             .body("{\"number\":" + number + ",\"title\":\"" + title + "\",\"airDate\":\"" + airDate + "\"}")
-            .when().post("/episodes")
+            .when().post("/api/episodes")
             .then().statusCode(201)
             .body("id", notNullValue())
             .body("number", equalTo(number))
@@ -47,7 +47,7 @@ class EpisodeResourceTest {
         given()
             .contentType("application/json")
             .body("{\"number\":" + n + ",\"title\":\"E2E\",\"airDate\":\"" + LocalDate.now().plusDays(7) + "\"}")
-            .when().post("/episodes")
+            .when().post("/api/episodes")
             .then().statusCode(201)
             .header("Location", notNullValue())
             .body("number", equalTo(n));
@@ -58,7 +58,7 @@ class EpisodeResourceTest {
         int n = allocateNumber();
         String id = scheduleEpisode(n, "Get me", LocalDate.now().plusDays(1));
 
-        given().when().get("/episodes/" + id)
+        given().when().get("/api/episodes/" + id)
             .then().statusCode(200)
             .body("id", equalTo(id))
             .body("number", equalTo(n));
@@ -72,7 +72,7 @@ class EpisodeResourceTest {
         given()
             .contentType("application/json")
             .body("{\"text\":\"" + "a".repeat(150) + "\"}")
-            .when().post("/episodes/" + id + "/abstract")
+            .when().post("/api/episodes/" + id + "/abstract")
             .then().statusCode(200)
             .body("theAbstract.text", notNullValue())
             .body("theAbstract.id", notNullValue());
@@ -88,14 +88,14 @@ class EpisodeResourceTest {
         given()
             .contentType("application/json")
             .body("{\"personId\":\"" + presenter + "\"}")
-            .when().post("/episodes/" + id + "/presenters")
+            .when().post("/api/episodes/" + id + "/presenters")
             .then().statusCode(200)
             .body("presenters", hasSize(1));
 
         given()
             .contentType("application/json")
             .body("{\"personId\":\"" + speaker + "\"}")
-            .when().post("/episodes/" + id + "/speakers")
+            .when().post("/api/episodes/" + id + "/speakers")
             .then().statusCode(200)
             .body("speakers", hasSize(1));
     }
@@ -108,26 +108,26 @@ class EpisodeResourceTest {
         given()
             .contentType("application/json")
             .body("{\"text\":\"" + "a".repeat(150) + "\"}")
-            .when().post("/episodes/" + id + "/abstract")
+            .when().post("/api/episodes/" + id + "/abstract")
             .then().statusCode(200);
 
         given()
             .contentType("application/json")
             .body("{\"personId\":\"" + UUID.randomUUID() + "\"}")
-            .when().post("/episodes/" + id + "/presenters")
+            .when().post("/api/episodes/" + id + "/presenters")
             .then().statusCode(200);
 
         given()
             .contentType("application/json")
             .body("{\"personId\":\"" + UUID.randomUUID() + "\"}")
-            .when().post("/episodes/" + id + "/speakers")
+            .when().post("/api/episodes/" + id + "/speakers")
             .then().statusCode(200);
 
-        given().when().post("/episodes/" + id + "/go-live")
+        given().when().post("/api/episodes/" + id + "/go-live")
             .then().statusCode(200)
             .body("status", equalTo("LIVE"));
 
-        given().when().post("/episodes/" + id + "/publish")
+        given().when().post("/api/episodes/" + id + "/publish")
             .then().statusCode(200)
             .body("status", equalTo("PUBLISHED"));
     }
@@ -140,14 +140,14 @@ class EpisodeResourceTest {
         given()
             .contentType("application/json")
             .body("{\"reason\":\"Studio booking conflict\"}")
-            .when().post("/episodes/" + id + "/cancel")
+            .when().post("/api/episodes/" + id + "/cancel")
             .then().statusCode(200)
             .body("status", equalTo("CANCELED"));
     }
 
     @Test
     void getReturns404WhenEpisodeMissing() {
-        given().when().get("/episodes/" + UUID.randomUUID())
+        given().when().get("/api/episodes/" + UUID.randomUUID())
             .then().statusCode(404)
             .body("error", equalTo("EpisodeNotFound"));
     }
@@ -158,7 +158,7 @@ class EpisodeResourceTest {
         given()
             .contentType("application/json")
             .body("{\"number\":" + n + ",\"title\":\"Past\",\"airDate\":\"" + LocalDate.now().minusDays(1) + "\"}")
-            .when().post("/episodes")
+            .when().post("/api/episodes")
             .then().statusCode(400)
             .body("error", equalTo("AirDateInPast"));
     }
@@ -169,7 +169,7 @@ class EpisodeResourceTest {
         given()
             .contentType("application/json")
             .body("{\"number\":" + n + ",\"title\":\"  \",\"airDate\":\"" + LocalDate.now().plusDays(1) + "\"}")
-            .when().post("/episodes")
+            .when().post("/api/episodes")
             .then().statusCode(400)
             .body("error", equalTo("IllegalArgumentException"));
     }
@@ -182,7 +182,7 @@ class EpisodeResourceTest {
         given()
             .contentType("application/json")
             .body("{\"number\":" + n + ",\"title\":\"Duplicate\",\"airDate\":\"" + LocalDate.now().plusDays(2) + "\"}")
-            .when().post("/episodes")
+            .when().post("/api/episodes")
             .then().statusCode(409)
             .body("error", equalTo("EpisodeNumberAlreadyExists"));
     }
@@ -192,7 +192,7 @@ class EpisodeResourceTest {
         int n = allocateNumber();
         String id = scheduleEpisode(n, "Not yet live", LocalDate.now().plusDays(7));
 
-        given().when().post("/episodes/" + id + "/publish")
+        given().when().post("/api/episodes/" + id + "/publish")
             .then().statusCode(409)
             .body("error", equalTo("IllegalEpisodeTransition"));
     }

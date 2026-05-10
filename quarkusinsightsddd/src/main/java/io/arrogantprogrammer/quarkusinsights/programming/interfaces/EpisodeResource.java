@@ -44,14 +44,14 @@ import java.util.UUID;
  *
  * <p>Endpoint table:
  * <ul>
- *   <li>POST /episodes — schedule</li>
- *   <li>GET /episodes/{id} — load</li>
- *   <li>POST /episodes/{id}/abstract — submit abstract</li>
- *   <li>POST /episodes/{id}/presenters — assign presenter</li>
- *   <li>POST /episodes/{id}/speakers — assign speaker</li>
- *   <li>POST /episodes/{id}/go-live — go live</li>
- *   <li>POST /episodes/{id}/publish — publish</li>
- *   <li>POST /episodes/{id}/cancel — cancel</li>
+ *   <li>POST /api/episodes — schedule</li>
+ *   <li>GET /api/episodes/{id} — load</li>
+ *   <li>POST /api/episodes/{id}/abstract — submit abstract</li>
+ *   <li>POST /api/episodes/{id}/presenters — assign presenter</li>
+ *   <li>POST /api/episodes/{id}/speakers — assign speaker</li>
+ *   <li>POST /api/episodes/{id}/go-live — go live</li>
+ *   <li>POST /api/episodes/{id}/publish — publish</li>
+ *   <li>POST /api/episodes/{id}/cancel — cancel</li>
  * </ul>
  *
  * <p>Domain exceptions thrown by the service or the aggregate
@@ -60,7 +60,7 @@ import java.util.UUID;
  *
  * <p>Part of the Programming bounded context, interfaces layer.
  */
-@Path("/episodes")
+@Path("/api/episodes")
 @ApplicationScoped
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -86,7 +86,7 @@ public class EpisodeResource {
         );
         EpisodeId id = episodeService.schedule(cmd);
         Episode created = loadOrThrow(id);
-        return Response.created(URI.create("/episodes/" + id.value()))
+        return Response.created(URI.create("/api/episodes/" + id.value()))
             .entity(responseMapper.toResponse(created))
             .build();
     }

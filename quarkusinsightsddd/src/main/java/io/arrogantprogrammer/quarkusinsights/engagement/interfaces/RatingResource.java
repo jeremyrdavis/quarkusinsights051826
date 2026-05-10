@@ -36,10 +36,10 @@ import java.util.UUID;
  *
  * <p>Endpoint table:
  * <ul>
- *   <li>POST /ratings — submit a new rating; returns 201 + Location, or 409
+ *   <li>POST /api/ratings — submit a new rating; returns 201 + Location, or 409
  *       if the author has already rated this episode (§3.6 rule)</li>
- *   <li>GET /ratings/{id} — load a rating by id; returns 200 or 404</li>
- *   <li>GET /ratings/by-episode/{episodeId} — list all ratings for an episode
+ *   <li>GET /api/ratings/{id} — load a rating by id; returns 200 or 404</li>
+ *   <li>GET /api/ratings/by-episode/{episodeId} — list all ratings for an episode
  *       in chronological order</li>
  * </ul>
  *
@@ -49,7 +49,7 @@ import java.util.UUID;
  *
  * <p>Part of the Engagement bounded context, interfaces layer.
  */
-@Path("/ratings")
+@Path("/api/ratings")
 @ApplicationScoped
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -76,7 +76,7 @@ public class RatingResource {
         );
         RatingId id = ratingService.submit(cmd);
         Rating created = loadOrThrow(id);
-        return Response.created(URI.create("/ratings/" + id.value()))
+        return Response.created(URI.create("/api/ratings/" + id.value()))
             .entity(responseMapper.toResponse(created))
             .build();
     }

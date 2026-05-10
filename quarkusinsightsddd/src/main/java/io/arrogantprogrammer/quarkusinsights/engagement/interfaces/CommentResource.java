@@ -38,11 +38,11 @@ import java.util.UUID;
  *
  * <p>Endpoint table:
  * <ul>
- *   <li>POST /comments — submit a new comment; returns 201 + Location</li>
- *   <li>GET /comments/{id} — load a comment by id; returns 200 or 404</li>
- *   <li>PUT /comments/{id} — edit a comment within the 5-minute window;
+ *   <li>POST /api/comments — submit a new comment; returns 201 + Location</li>
+ *   <li>GET /api/comments/{id} — load a comment by id; returns 200 or 404</li>
+ *   <li>PUT /api/comments/{id} — edit a comment within the 5-minute window;
  *       returns 200 or 409 if window expired</li>
- *   <li>GET /comments/by-episode/{episodeId} — list all comments for an
+ *   <li>GET /api/comments/by-episode/{episodeId} — list all comments for an
  *       episode in chronological order</li>
  * </ul>
  *
@@ -52,7 +52,7 @@ import java.util.UUID;
  *
  * <p>Part of the Engagement bounded context, interfaces layer.
  */
-@Path("/comments")
+@Path("/api/comments")
 @ApplicationScoped
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -78,7 +78,7 @@ public class CommentResource {
         );
         CommentId id = commentService.submit(cmd);
         Comment created = loadOrThrow(id);
-        return Response.created(URI.create("/comments/" + id.value()))
+        return Response.created(URI.create("/api/comments/" + id.value()))
             .entity(responseMapper.toResponse(created))
             .build();
     }
