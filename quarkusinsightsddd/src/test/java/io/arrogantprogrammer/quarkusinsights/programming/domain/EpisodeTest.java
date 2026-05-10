@@ -496,4 +496,65 @@ class EpisodeTest {
             assertThrows(IllegalArgumentException.class, () -> episode.cancel("   "));
         }
     }
+
+    @Nested
+    class Rehydrate {
+
+        @Test
+        void preservesAllState() {
+            io.arrogantprogrammer.quarkusinsights.shared.EpisodeId id =
+                io.arrogantprogrammer.quarkusinsights.shared.EpisodeId.random();
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId presenter =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId speaker =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            Abstract a = new Abstract(AbstractId.random(),
+                new AbstractText("a".repeat(150)),
+                java.time.Instant.parse("2026-01-01T12:00:00Z"));
+
+            Episode episode = Episode.rehydrate(
+                id, numberOne, titlePilot, today, a,
+                java.util.Set.of(presenter), java.util.Set.of(speaker),
+                EpisodeStatus.PUBLISHED,
+                java.time.Instant.parse("2026-01-01T10:00:00Z"),
+                java.time.Instant.parse("2026-01-01T13:00:00Z"));
+
+            assertEquals(id, episode.id());
+            assertEquals(numberOne, episode.number());
+            assertEquals(titlePilot, episode.title());
+            assertEquals(today, episode.airDate());
+            assertEquals(a, episode.theAbstract());
+            assertEquals(java.util.Set.of(presenter), episode.presenters());
+            assertEquals(java.util.Set.of(speaker), episode.speakers());
+            assertEquals(EpisodeStatus.PUBLISHED, episode.status());
+        }
+
+        @Test
+        void doesNotRecordAnyEvent() {
+            Episode episode = Episode.rehydrate(
+                io.arrogantprogrammer.quarkusinsights.shared.EpisodeId.random(),
+                numberOne, titlePilot, today, null,
+                java.util.Set.of(), java.util.Set.of(),
+                EpisodeStatus.SCHEDULED,
+                java.time.Instant.now(), java.time.Instant.now());
+            assertTrue(episode.recordedEvents().isEmpty());
+        }
+
+        @Test
+        void defensivelyCopiesPresentersAndSpeakers() {
+            io.arrogantprogrammer.quarkusinsights.shared.PersonId p =
+                io.arrogantprogrammer.quarkusinsights.shared.PersonId.random();
+            java.util.Set<io.arrogantprogrammer.quarkusinsights.shared.PersonId> external =
+                new java.util.HashSet<>();
+            external.add(p);
+            Episode episode = Episode.rehydrate(
+                io.arrogantprogrammer.quarkusinsights.shared.EpisodeId.random(),
+                numberOne, titlePilot, today, null,
+                external, java.util.Set.of(),
+                EpisodeStatus.SCHEDULED,
+                java.time.Instant.now(), java.time.Instant.now());
+            external.clear();
+            assertTrue(episode.presenters().contains(p));
+        }
+    }
 }
