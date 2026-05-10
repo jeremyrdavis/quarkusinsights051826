@@ -321,4 +321,53 @@ class EpisodeTest {
             assertThrows(IllegalArgumentException.class, () -> episode.assignSpeaker(null));
         }
     }
+
+    @Nested
+    class GoLive {
+
+        @Test
+        void transitionsToLive() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, today);
+            episode.goLive();
+            assertEquals(EpisodeStatus.LIVE, episode.status());
+        }
+
+        @Test
+        void recordsEpisodeWentLiveEvent() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, today);
+            episode.clearRecordedEvents();
+            episode.goLive();
+            List<DomainEvent> events = episode.recordedEvents();
+            assertEquals(1, events.size());
+            EpisodeWentLive e = assertInstanceOf(EpisodeWentLive.class, events.get(0));
+            assertEquals(episode.id(), e.episodeId());
+        }
+
+        @Test
+        void rejectsCallBeforeAirDate() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            assertThrows(AirDateInPast.class, () -> episode.goLive());
+        }
+
+        @Test
+        void rejectsCallWhenAlreadyLive() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, today);
+            episode.goLive();
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.goLive());
+        }
+
+        @Test
+        void rejectsCallWhenPublished() {
+            Episode episode = liveEpisodeReadyToPublish();
+            episode.publish();
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.goLive());
+        }
+
+        @Test
+        void rejectsCallWhenCanceled() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.cancel("any reason");
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.goLive());
+        }
+    }
 }
