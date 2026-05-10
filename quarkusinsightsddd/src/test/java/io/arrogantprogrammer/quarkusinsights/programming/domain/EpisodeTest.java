@@ -441,4 +441,59 @@ class EpisodeTest {
             assertThrows(MissingSpeaker.class, () -> episode.publish());
         }
     }
+
+    @Nested
+    class Cancel {
+
+        @Test
+        void transitionsToCanceled() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.cancel("Speaker withdrew");
+            assertEquals(EpisodeStatus.CANCELED, episode.status());
+        }
+
+        @Test
+        void recordsEpisodeCanceledEventWithReason() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.clearRecordedEvents();
+            episode.cancel("Studio booking conflict");
+            List<DomainEvent> events = episode.recordedEvents();
+            assertEquals(1, events.size());
+            EpisodeCanceled e = assertInstanceOf(EpisodeCanceled.class, events.get(0));
+            assertEquals(episode.id(), e.episodeId());
+            assertEquals("Studio booking conflict", e.reason());
+        }
+
+        @Test
+        void rejectsCallWhenLive() {
+            Episode episode = liveEpisodeReadyToPublish();
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.cancel("any reason"));
+        }
+
+        @Test
+        void rejectsCallWhenPublished() {
+            Episode episode = liveEpisodeReadyToPublish();
+            episode.publish();
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.cancel("any reason"));
+        }
+
+        @Test
+        void rejectsCallWhenAlreadyCanceled() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.cancel("first reason");
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.cancel("second reason"));
+        }
+
+        @Test
+        void rejectsNullReason() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            assertThrows(IllegalArgumentException.class, () -> episode.cancel(null));
+        }
+
+        @Test
+        void rejectsBlankReason() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            assertThrows(IllegalArgumentException.class, () -> episode.cancel("   "));
+        }
+    }
 }
