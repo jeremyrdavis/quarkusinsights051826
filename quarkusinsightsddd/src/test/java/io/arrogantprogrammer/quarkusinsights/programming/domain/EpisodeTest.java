@@ -370,4 +370,75 @@ class EpisodeTest {
             assertThrows(IllegalEpisodeTransition.class, () -> episode.goLive());
         }
     }
+
+    @Nested
+    class Publish {
+
+        @Test
+        void transitionsToPublished() {
+            Episode episode = liveEpisodeReadyToPublish();
+            episode.publish();
+            assertEquals(EpisodeStatus.PUBLISHED, episode.status());
+        }
+
+        @Test
+        void recordsEpisodePublishedEvent() {
+            Episode episode = liveEpisodeReadyToPublish();
+            episode.clearRecordedEvents();
+            episode.publish();
+            List<DomainEvent> events = episode.recordedEvents();
+            assertEquals(1, events.size());
+            EpisodePublished e = assertInstanceOf(EpisodePublished.class, events.get(0));
+            assertEquals(episode.id(), e.episodeId());
+            assertEquals(numberOne, e.number());
+        }
+
+        @Test
+        void rejectsCallWhenScheduled() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, today);
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.publish());
+        }
+
+        @Test
+        void rejectsCallWhenAlreadyPublished() {
+            Episode episode = liveEpisodeReadyToPublish();
+            episode.publish();
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.publish());
+        }
+
+        @Test
+        void rejectsCallWhenCanceled() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.cancel("any reason");
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.publish());
+        }
+
+        @Test
+        void rejectsCallWhenAbstractMissing() {
+            // Construct a LIVE episode without an abstract.
+            Episode episode = Episode.schedule(numberOne, titlePilot, today);
+            episode.assignPresenter(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random());
+            episode.assignSpeaker(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random());
+            episode.goLive();
+            assertThrows(MissingAbstract.class, () -> episode.publish());
+        }
+
+        @Test
+        void rejectsCallWithZeroPresenters() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, today);
+            episode.submitAbstract(new AbstractText("a".repeat(150)));
+            episode.assignSpeaker(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random());
+            episode.goLive();
+            assertThrows(MissingPresenter.class, () -> episode.publish());
+        }
+
+        @Test
+        void rejectsCallWithZeroSpeakers() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, today);
+            episode.submitAbstract(new AbstractText("a".repeat(150)));
+            episode.assignPresenter(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random());
+            episode.goLive();
+            assertThrows(MissingSpeaker.class, () -> episode.publish());
+        }
+    }
 }
