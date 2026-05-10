@@ -169,4 +169,181 @@ public class Episode {
     public void clearRecordedEvents() {
         recordedEvents.clear();
     }
+
+    /**
+     * Submits or replaces this episode's abstract.
+     *
+     * <p>If the episode already has an abstract, it is discarded and
+     * replaced by a fresh {@link Abstract} with a new id. Allowed only
+     * while the episode is in {@link EpisodeStatus#SCHEDULED}.
+     *
+     * <p>Records an {@link AbstractSubmitted} domain event.
+     *
+     * @param text the abstract text; must not be null
+     * @throws IllegalArgumentException if {@code text} is null
+     * @throws IllegalEpisodeTransition if the episode is not in
+     *     {@link EpisodeStatus#SCHEDULED}
+     */
+    public void submitAbstract(AbstractText text) {
+        if (text == null) {
+            throw new IllegalArgumentException("AbstractText must not be null");
+        }
+        if (status != EpisodeStatus.SCHEDULED) {
+            throw new IllegalEpisodeTransition(status);
+        }
+        Instant now = Instant.now();
+        Abstract a = new Abstract(AbstractId.random(), text, now);
+        this.theAbstract = a;
+        this.updatedAt = now;
+        recordedEvents.add(new AbstractSubmitted(id, a.id(), now));
+    }
+
+    /**
+     * Assigns a {@link PersonId} as a presenter (host) on this episode.
+     * Idempotent: assigning the same person twice is a no-op and does
+     * not record a duplicate event. Allowed in
+     * {@link EpisodeStatus#SCHEDULED} or {@link EpisodeStatus#LIVE}.
+     *
+     * <p>Records a {@link PresenterAssigned} event only if the person
+     * was not already a presenter.
+     *
+     * @param personId the presenter's identifier; must not be null
+     * @throws IllegalArgumentException if {@code personId} is null
+     * @throws IllegalEpisodeTransition if the episode is not
+     *     {@code SCHEDULED} or {@code LIVE}
+     */
+    public void assignPresenter(PersonId personId) {
+        if (personId == null) {
+            throw new IllegalArgumentException("PersonId must not be null");
+        }
+        if (status != EpisodeStatus.SCHEDULED && status != EpisodeStatus.LIVE) {
+            throw new IllegalEpisodeTransition(status);
+        }
+        if (presenters.add(personId)) {
+            Instant now = Instant.now();
+            this.updatedAt = now;
+            recordedEvents.add(new PresenterAssigned(id, personId, now));
+        }
+    }
+
+    /**
+     * Assigns a {@link PersonId} as a speaker (guest) on this episode.
+     * Idempotent: assigning the same person twice is a no-op and does
+     * not record a duplicate event. Allowed in
+     * {@link EpisodeStatus#SCHEDULED} or {@link EpisodeStatus#LIVE}.
+     *
+     * <p>Records a {@link SpeakerAssigned} event only if the person
+     * was not already a speaker.
+     *
+     * @param personId the speaker's identifier; must not be null
+     * @throws IllegalArgumentException if {@code personId} is null
+     * @throws IllegalEpisodeTransition if the episode is not
+     *     {@code SCHEDULED} or {@code LIVE}
+     */
+    public void assignSpeaker(PersonId personId) {
+        if (personId == null) {
+            throw new IllegalArgumentException("PersonId must not be null");
+        }
+        if (status != EpisodeStatus.SCHEDULED && status != EpisodeStatus.LIVE) {
+            throw new IllegalEpisodeTransition(status);
+        }
+        if (speakers.add(personId)) {
+            Instant now = Instant.now();
+            this.updatedAt = now;
+            recordedEvents.add(new SpeakerAssigned(id, personId, now));
+        }
+    }
+
+    /**
+     * Transitions this episode from {@link EpisodeStatus#SCHEDULED} to
+     * {@link EpisodeStatus#LIVE}.
+     *
+     * <p>Requires the air date to be on or before today's local date —
+     * an episode cannot go live before its scheduled air date.
+     *
+     * <p>Records an {@link EpisodeWentLive} event.
+     *
+     * @throws IllegalEpisodeTransition if the episode is not
+     *     {@code SCHEDULED}
+     * @throws AirDateInPast if the air date is strictly after today
+     */
+    public void goLive() {
+        if (status != EpisodeStatus.SCHEDULED) {
+            throw new IllegalEpisodeTransition(status);
+        }
+        if (airDate.value().isAfter(LocalDate.now())) {
+            throw new AirDateInPast(airDate);
+        }
+        Instant now = Instant.now();
+        this.status = EpisodeStatus.LIVE;
+        this.updatedAt = now;
+        recordedEvents.add(new EpisodeWentLive(id, now));
+    }
+
+    /**
+     * Transitions this episode from {@link EpisodeStatus#LIVE} to
+     * {@link EpisodeStatus#PUBLISHED}.
+     *
+     * <p>Requires:
+     * <ul>
+     *   <li>current status is {@code LIVE} (otherwise
+     *       {@link IllegalEpisodeTransition})</li>
+     *   <li>an abstract has been submitted (otherwise
+     *       {@link MissingAbstract})</li>
+     *   <li>at least one presenter has been assigned (otherwise
+     *       {@link MissingPresenter})</li>
+     *   <li>at least one speaker has been assigned (otherwise
+     *       {@link MissingSpeaker})</li>
+     * </ul>
+     *
+     * <p>Records an {@link EpisodePublished} event.
+     *
+     * @throws IllegalEpisodeTransition if status is not {@code LIVE}
+     * @throws MissingAbstract if no abstract has been submitted
+     * @throws MissingPresenter if no presenters have been assigned
+     * @throws MissingSpeaker if no speakers have been assigned
+     */
+    public void publish() {
+        if (status != EpisodeStatus.LIVE) {
+            throw new IllegalEpisodeTransition(status);
+        }
+        if (theAbstract == null) {
+            throw new MissingAbstract(id);
+        }
+        if (presenters.isEmpty()) {
+            throw new MissingPresenter(id);
+        }
+        if (speakers.isEmpty()) {
+            throw new MissingSpeaker(id);
+        }
+        Instant now = Instant.now();
+        this.status = EpisodeStatus.PUBLISHED;
+        this.updatedAt = now;
+        recordedEvents.add(new EpisodePublished(id, number, now));
+    }
+
+    /**
+     * Cancels this episode while it is still in {@link EpisodeStatus#SCHEDULED}.
+     * Cancellation is terminal — once canceled, the episode cannot be
+     * reactivated (no transition out of {@code CANCELED} is provided).
+     *
+     * <p>Records an {@link EpisodeCanceled} event with the supplied reason.
+     *
+     * @param reason a human-readable cancellation reason; must not be
+     *               null or blank
+     * @throws IllegalArgumentException if {@code reason} is null or blank
+     * @throws IllegalEpisodeTransition if status is not {@code SCHEDULED}
+     */
+    public void cancel(String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("Cancel reason must not be null or blank");
+        }
+        if (status != EpisodeStatus.SCHEDULED) {
+            throw new IllegalEpisodeTransition(status);
+        }
+        Instant now = Instant.now();
+        this.status = EpisodeStatus.CANCELED;
+        this.updatedAt = now;
+        recordedEvents.add(new EpisodeCanceled(id, reason, now));
+    }
 }

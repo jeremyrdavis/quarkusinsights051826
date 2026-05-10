@@ -9,6 +9,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,6 +28,21 @@ class EpisodeTest {
     private static final AirDate today = new AirDate(LocalDate.now());
     private static final AirDate yesterday = new AirDate(LocalDate.now().minusDays(1));
     private static final AirDate tomorrow = new AirDate(LocalDate.now().plusDays(1));
+
+    /**
+     * Builds an Episode in {@link EpisodeStatus#LIVE} with one abstract,
+     * one presenter, and one speaker — the precondition state for
+     * {@link Episode#publish()}. Used by SubmitAbstract,
+     * AssignPresenter, AssignSpeaker, GoLive, Publish, Cancel tests.
+     */
+    private static Episode liveEpisodeReadyToPublish() {
+        Episode episode = Episode.schedule(numberOne, titlePilot, today);
+        episode.submitAbstract(new AbstractText("a".repeat(150)));
+        episode.assignPresenter(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random());
+        episode.assignSpeaker(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random());
+        episode.goLive();
+        return episode;
+    }
 
     @Nested
     class Schedule {
@@ -101,6 +117,75 @@ class EpisodeTest {
             Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
             List<DomainEvent> snapshot = episode.recordedEvents();
             assertThrows(UnsupportedOperationException.class, () -> snapshot.add(null));
+        }
+    }
+
+    @Nested
+    class SubmitAbstract {
+
+        private static final AbstractText sample =
+            new AbstractText("This is the abstract for the pilot episode. ".repeat(3));
+
+        @Test
+        void setsTheAbstract() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.submitAbstract(sample);
+            assertNotNull(episode.theAbstract());
+            assertEquals(sample, episode.theAbstract().text());
+        }
+
+        @Test
+        void recordsAbstractSubmittedEvent() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.clearRecordedEvents();
+            episode.submitAbstract(sample);
+            List<DomainEvent> events = episode.recordedEvents();
+            assertEquals(1, events.size());
+            AbstractSubmitted e = assertInstanceOf(AbstractSubmitted.class, events.get(0));
+            assertEquals(episode.id(), e.episodeId());
+            assertEquals(episode.theAbstract().id(), e.abstractId());
+        }
+
+        @Test
+        void replacesAnExistingAbstract() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.submitAbstract(sample);
+            AbstractId firstId = episode.theAbstract().id();
+            AbstractText replacement =
+                new AbstractText("A different abstract text. ".repeat(5));
+            episode.submitAbstract(replacement);
+            assertEquals(replacement, episode.theAbstract().text());
+            assertNotEquals(firstId, episode.theAbstract().id());
+        }
+
+        @Test
+        void rejectsNullText() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            assertThrows(IllegalArgumentException.class, () -> episode.submitAbstract(null));
+        }
+
+        @Test
+        void rejectsCallWhenLive() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, today);
+            episode.submitAbstract(sample);
+            episode.assignPresenter(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random());
+            episode.assignSpeaker(io.arrogantprogrammer.quarkusinsights.shared.PersonId.random());
+            episode.goLive();
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.submitAbstract(sample));
+        }
+
+        @Test
+        void rejectsCallWhenPublished() {
+            Episode episode = liveEpisodeReadyToPublish();
+            episode.publish();
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.submitAbstract(sample));
+        }
+
+        @Test
+        void rejectsCallWhenCanceled() {
+            Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
+            episode.cancel("Scheduling conflict");
+            assertThrows(IllegalEpisodeTransition.class, () -> episode.submitAbstract(sample));
         }
     }
 }
