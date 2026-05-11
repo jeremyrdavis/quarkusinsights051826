@@ -4,7 +4,10 @@ import io.arrogantprogrammer.quarkusinsights.catalog.infrastructure.persistence.
 import io.arrogantprogrammer.quarkusinsights.catalog.infrastructure.persistence.PublicEpisodeViewEntity;
 import io.arrogantprogrammer.quarkusinsights.catalog.infrastructure.persistence.SpeakerEmbeddable;
 import io.arrogantprogrammer.quarkusinsights.people.application.PersonQueries;
+import io.arrogantprogrammer.quarkusinsights.programming.application.EpisodeQueries;
+import io.arrogantprogrammer.quarkusinsights.programming.application.EpisodeSummary;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.AbstractSubmitted;
+import io.arrogantprogrammer.quarkusinsights.programming.domain.AbstractText;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeCanceled;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodePublished;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeScheduled;
@@ -18,8 +21,6 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
-import java.time.Instant;
-
 /**
  * Event projector that keeps the {@code public_episode_view} table up to date
  * with events from the Programming bounded context.
@@ -31,12 +32,10 @@ import java.time.Instant;
  *   <li>{@link EpisodeScheduled} — creates a new {@link PublicEpisodeViewEntity}
  *       row with status SCHEDULED, empty presenters/speakers, zero comment/rating
  *       counts.</li>
- *   <li>{@link AbstractSubmitted} — marks the entity to record that an abstract
- *       was submitted. <strong>Known limitation:</strong> the current event does
- *       not include the abstract text, only the AbstractId. The projection records
- *       a placeholder to indicate an abstract was submitted; the actual text
- *       requires a cross-context query or an enriched event payload (deferred to
- *       a future plan).</li>
+ *   <li>{@link AbstractSubmitted} — queries {@link EpisodeQueries} for the
+ *       real abstract text and stores it on the view row. Because the event fires
+ *       within the same transaction as the Episode aggregate save, the text is
+ *       guaranteed to be present at this point.</li>
  *   <li>{@link PresenterAssigned} — adds the presenter to the view's set; uses
  *       {@link PersonQueries} to resolve the display name. Idempotent: skips
  *       if the person is already in the set.</li>
@@ -57,28 +56,44 @@ import java.time.Instant;
 public class EpisodeProjector {
 
     private final PersonQueries personQueries;
+    private final EpisodeQueries episodeQueries;
 
     /**
      * Creates the projector.
      *
-     * @param personQueries cross-context query port for resolving person display names
+     * @param personQueries  cross-context query port for resolving person display names
+     * @param episodeQueries cross-context query port for resolving episode titles and abstracts
      */
     @Inject
-    public EpisodeProjector(PersonQueries personQueries) {
+    public EpisodeProjector(PersonQueries personQueries, EpisodeQueries episodeQueries) {
         this.personQueries = personQueries;
+        this.episodeQueries = episodeQueries;
     }
 
     /**
      * Handles {@link EpisodeScheduled}: inserts a new view row.
      *
+     * <p>Resolves the real episode title via {@link EpisodeQueries}. Because
+     * {@code EpisodeScheduled} is fired after the Episode aggregate is persisted
+     * within the same transaction, the Episode row is guaranteed to be visible
+     * to this observer. An {@link IllegalStateException} is thrown (rather than
+     * silently falling back to a placeholder) so that any wiring bug surfaces
+     * immediately during testing rather than shipping placeholder titles to users.
+     *
      * @param event the scheduling event; never null (CDI guarantees this)
+     * @throws IllegalStateException if no Episode with the given id exists in
+     *     the database at the time this observer fires
      */
     @Transactional
     public void onEpisodeScheduled(@Observes EpisodeScheduled event) {
+        EpisodeSummary summary = episodeQueries.findById(event.episodeId())
+            .orElseThrow(() -> new IllegalStateException(
+                "EpisodeScheduled event fired for unknown episode " + event.episodeId().value()
+                + " — projector cannot enrich without the persisted Episode"));
         PublicEpisodeViewEntity entity = new PublicEpisodeViewEntity();
         entity.id = event.episodeId().value();
         entity.number = event.number().value();
-        entity.title = "Episode " + event.number().value(); // placeholder; title not in event
+        entity.title = summary.title().value();
         entity.airDate = event.airDate().value();
         entity.status = EpisodeStatus.SCHEDULED;
         entity.abstractText = null;
@@ -90,27 +105,28 @@ public class EpisodeProjector {
     }
 
     /**
-     * Handles {@link AbstractSubmitted}: records that an abstract was submitted.
+     * Handles {@link AbstractSubmitted}: stores the real abstract text on the view row.
      *
-     * <p><strong>Known limitation:</strong> {@link AbstractSubmitted} does not
-     * carry the abstract text, only the {@code AbstractId}. The projector
-     * therefore cannot populate the actual text at this time. A real
-     * implementation would either:
-     * <ol>
-     *   <li>Extend {@code AbstractSubmitted} to include the text, or</li>
-     *   <li>Perform a cross-context query to the Programming repository.</li>
-     * </ol>
-     * For now, the projector sets a sentinel value to indicate the abstract
-     * exists, deferring text enrichment to a future plan.
+     * <p>Resolves the abstract text via {@link EpisodeQueries}. Because
+     * {@code AbstractSubmitted} is fired after the Episode aggregate (including
+     * the embedded Abstract) is persisted within the same transaction, the text
+     * is guaranteed to be present at this point.
      *
      * @param event the abstract-submission event
+     * @throws IllegalStateException if no Episode with the given id exists, or if
+     *     the Episode has no abstract text at the time this observer fires
      */
     @Transactional
     public void onAbstractSubmitted(@Observes AbstractSubmitted event) {
         PublicEpisodeViewEntity entity = findByIdOrNull(event.episodeId().value());
         if (entity == null) return;
-        // Abstract text not available in the event payload — see Javadoc above.
-        entity.abstractText = "[abstract submitted — text pending enrichment]";
+        EpisodeSummary summary = episodeQueries.findById(event.episodeId())
+            .orElseThrow(() -> new IllegalStateException(
+                "AbstractSubmitted event fired for unknown episode " + event.episodeId().value()));
+        entity.abstractText = summary.abstractText()
+            .map(AbstractText::value)
+            .orElseThrow(() -> new IllegalStateException(
+                "AbstractSubmitted event fired but Episode has no abstract — projector inconsistency"));
         entity.lastUpdatedAt = event.occurredAt();
     }
 

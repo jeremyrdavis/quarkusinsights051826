@@ -6,15 +6,18 @@ import io.arrogantprogrammer.quarkusinsights.people.application.RegisterPersonCo
 import io.arrogantprogrammer.quarkusinsights.people.domain.Bio;
 import io.arrogantprogrammer.quarkusinsights.people.domain.Email;
 import io.arrogantprogrammer.quarkusinsights.people.domain.PersonName;
-import io.arrogantprogrammer.quarkusinsights.programming.domain.AbstractId;
-import io.arrogantprogrammer.quarkusinsights.programming.domain.AbstractSubmitted;
+import io.arrogantprogrammer.quarkusinsights.programming.application.AssignPresenterCommand;
+import io.arrogantprogrammer.quarkusinsights.programming.application.EpisodeService;
+import io.arrogantprogrammer.quarkusinsights.programming.application.ScheduleEpisodeCommand;
+import io.arrogantprogrammer.quarkusinsights.programming.application.SubmitAbstractCommand;
+import io.arrogantprogrammer.quarkusinsights.programming.domain.AbstractText;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.AirDate;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeCanceled;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeNumber;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodePublished;
-import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeScheduled;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeStatus;
-import io.arrogantprogrammer.quarkusinsights.programming.domain.PresenterAssigned;
+import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeTitle;
+import io.arrogantprogrammer.quarkusinsights.programming.infrastructure.persistence.EpisodeEntity;
 import io.arrogantprogrammer.quarkusinsights.shared.DomainEvent;
 import io.arrogantprogrammer.quarkusinsights.shared.EpisodeId;
 import io.arrogantprogrammer.quarkusinsights.shared.PersonId;
@@ -26,26 +29,31 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
- * Integration tests for {@link EpisodeProjector} verifying that CDI domain
- * events fired via {@link Event} are observed and result in the correct
- * mutations on {@link PublicEpisodeViewEntity}.
+ * Integration tests for {@link EpisodeProjector} verifying that domain operations
+ * produce the correct denormalized view in {@link PublicEpisodeViewEntity}.
  *
- * <p>Each test is wrapped in its own {@code @Transactional} helper method so
- * that the fired event's observer (which is itself {@code @Transactional})
- * participates in or joins the test's transaction, and the entity is visible
- * immediately after the event fires.
+ * <p>Tests seed Episodes via {@link EpisodeService#schedule} (and related commands)
+ * so that the Episode aggregate is persisted before the projector's observer fires.
+ * This mirrors production behavior where {@code EpisodeScheduled} is only published
+ * after the Episode is saved in the same transaction.
+ *
+ * <p>Status-only transitions ({@link EpisodePublished}, {@link EpisodeCanceled}) are
+ * still fired via CDI {@link Event} because the projector only reads the existing
+ * view row for those events — no cross-context Episode lookup is required.
  */
 @QuarkusTest
 class EpisodeProjectorTest {
 
     @Inject
     Event<DomainEvent> domainEvents;
+
+    @Inject
+    EpisodeService episodeService;
 
     @Inject
     PersonService personService;
@@ -55,51 +63,38 @@ class EpisodeProjectorTest {
     // -------------------------------------------------------------------------
 
     @Test
-    void episodeScheduledCreatesViewRow() {
-        EpisodeId episodeId = EpisodeId.random();
-        EpisodeScheduled event = new EpisodeScheduled(
-            episodeId,
-            new EpisodeNumber(700),
-            new AirDate(LocalDate.now().plusDays(1)),
-            Instant.now()
-        );
-
-        domainEvents.fire(event);
+    void episodeScheduledCreatesViewRowWithRealTitle() {
+        EpisodeId episodeId = scheduleEpisode(800, "Pilot Episode", LocalDate.now().plusDays(1));
 
         PublicEpisodeViewEntity found = findEntity(episodeId);
         assertNotNull(found, "Entity should have been created by EpisodeProjector");
-        assertEquals(700, found.number);
+        assertEquals(800, found.number);
+        assertEquals("Pilot Episode", found.title,
+            "Title should be the real title, not a placeholder like 'Episode N'");
         assertEquals(EpisodeStatus.SCHEDULED, found.status);
         assertEquals(0, found.commentCount);
         assertEquals(0, found.ratingCount);
 
         // cleanup
-        deleteEntity(episodeId);
+        deleteAll(episodeId);
     }
 
     @Test
-    void abstractSubmittedUpdatesEntity() {
-        EpisodeId episodeId = EpisodeId.random();
-        // First schedule so the entity exists
-        domainEvents.fire(new EpisodeScheduled(
-            episodeId,
-            new EpisodeNumber(701),
-            new AirDate(LocalDate.now().plusDays(1)),
-            Instant.now()
-        ));
+    void abstractSubmittedStoresRealAbstractText() {
+        EpisodeId episodeId = scheduleEpisode(801, "Deep Dive Into Quarkus", LocalDate.now().plusDays(1));
 
-        AbstractSubmitted event = new AbstractSubmitted(
+        String abstractBody = "A".repeat(150); // valid 150-char abstract
+        episodeService.submitAbstract(new SubmitAbstractCommand(
             episodeId,
-            AbstractId.random(),
-            Instant.now()
-        );
-        domainEvents.fire(event);
+            new AbstractText(abstractBody)
+        ));
 
         PublicEpisodeViewEntity found = findEntity(episodeId);
         assertNotNull(found);
-        assertNotNull(found.abstractText, "abstractText should be set after AbstractSubmitted");
+        assertEquals(abstractBody, found.abstractText,
+            "abstractText should be the real abstract body, not a sentinel placeholder");
 
-        deleteEntity(episodeId);
+        deleteAll(episodeId);
     }
 
     @Test
@@ -107,54 +102,35 @@ class EpisodeProjectorTest {
         // Register a real Person so PersonQueries can resolve their name
         PersonId personId = registerPerson("projtest-presenter@example.com", "Test", "Presenter");
 
-        EpisodeId episodeId = EpisodeId.random();
-        domainEvents.fire(new EpisodeScheduled(
-            episodeId,
-            new EpisodeNumber(702),
-            new AirDate(LocalDate.now().plusDays(1)),
-            Instant.now()
-        ));
-
-        domainEvents.fire(new PresenterAssigned(episodeId, personId, Instant.now()));
+        EpisodeId episodeId = scheduleEpisode(802, "Presenter Test Episode", LocalDate.now().plusDays(1));
+        episodeService.assignPresenter(new AssignPresenterCommand(episodeId, personId));
 
         PublicEpisodeViewEntity found = findEntity(episodeId);
         assertNotNull(found);
-        assertEquals(1, found.presenters.size(), "Expected one presenter after PresenterAssigned");
+        assertEquals(1, found.presenters.size(), "Expected one presenter after assignPresenter");
         var presenter = found.presenters.iterator().next();
         assertEquals(personId.value(), presenter.personId);
         assertEquals("Test Presenter", presenter.displayName);
 
-        deleteEntity(episodeId);
+        deleteAll(episodeId);
     }
 
     @Test
     void episodePublishedUpdatesStatus() {
-        EpisodeId episodeId = EpisodeId.random();
-        domainEvents.fire(new EpisodeScheduled(
-            episodeId,
-            new EpisodeNumber(703),
-            new AirDate(LocalDate.now().plusDays(1)),
-            Instant.now()
-        ));
+        EpisodeId episodeId = scheduleEpisode(803, "Published Episode", LocalDate.now().plusDays(1));
 
-        domainEvents.fire(new EpisodePublished(episodeId, new EpisodeNumber(703), Instant.now()));
+        domainEvents.fire(new EpisodePublished(episodeId, new EpisodeNumber(803), Instant.now()));
 
         PublicEpisodeViewEntity found = findEntity(episodeId);
         assertNotNull(found);
         assertEquals(EpisodeStatus.PUBLISHED, found.status, "Status should be PUBLISHED");
 
-        deleteEntity(episodeId);
+        deleteAll(episodeId);
     }
 
     @Test
     void episodeCanceledUpdatesStatus() {
-        EpisodeId episodeId = EpisodeId.random();
-        domainEvents.fire(new EpisodeScheduled(
-            episodeId,
-            new EpisodeNumber(704),
-            new AirDate(LocalDate.now().plusDays(1)),
-            Instant.now()
-        ));
+        EpisodeId episodeId = scheduleEpisode(804, "Canceled Episode", LocalDate.now().plusDays(1));
 
         domainEvents.fire(new EpisodeCanceled(episodeId, "Schedule conflict", Instant.now()));
 
@@ -162,22 +138,41 @@ class EpisodeProjectorTest {
         assertNotNull(found);
         assertEquals(EpisodeStatus.CANCELED, found.status, "Status should be CANCELED");
 
-        deleteEntity(episodeId);
+        deleteAll(episodeId);
     }
 
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
 
+    /**
+     * Schedules a new Episode via {@link EpisodeService#schedule}. The service
+     * persists the Episode and fires {@code EpisodeScheduled}, which causes the
+     * projector to insert a {@link PublicEpisodeViewEntity} row with the real title.
+     */
+    EpisodeId scheduleEpisode(int number, String title, LocalDate airDate) {
+        return episodeService.schedule(new ScheduleEpisodeCommand(
+            new EpisodeNumber(number),
+            new EpisodeTitle(title),
+            new AirDate(airDate)
+        ));
+    }
+
     @Transactional
     PublicEpisodeViewEntity findEntity(EpisodeId episodeId) {
         return PublicEpisodeViewEntity.findById(episodeId.value());
     }
 
+    /**
+     * Deletes both the {@link PublicEpisodeViewEntity} and the underlying
+     * {@link EpisodeEntity} so each test starts with a clean slate.
+     */
     @Transactional
-    void deleteEntity(EpisodeId episodeId) {
-        PublicEpisodeViewEntity entity = PublicEpisodeViewEntity.findById(episodeId.value());
-        if (entity != null) entity.delete();
+    void deleteAll(EpisodeId episodeId) {
+        PublicEpisodeViewEntity view = PublicEpisodeViewEntity.findById(episodeId.value());
+        if (view != null) view.delete();
+        EpisodeEntity episode = EpisodeEntity.findById(episodeId.value());
+        if (episode != null) episode.delete();
     }
 
     PersonId registerPerson(String email, String first, String last) {
