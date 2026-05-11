@@ -26,7 +26,7 @@ import java.util.List;
  * <p>The service contains no business rules — those live in the
  * {@link Episode} aggregate. The service contains workflow plus the
  * cross-aggregate invariants that no single Episode can verify
- * (notably the {@link EpisodeNumber} uniqueness check in
+ * (notably the {@link io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeNumber} uniqueness check in
  * {@link #schedule}).
  *
  * <p>Part of the Programming bounded context, application layer.

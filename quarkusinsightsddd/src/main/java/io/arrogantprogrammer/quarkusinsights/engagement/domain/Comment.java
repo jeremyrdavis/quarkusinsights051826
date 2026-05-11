@@ -23,7 +23,7 @@ import java.util.List;
  * <p><strong>Edit window.</strong> The 5-minute edit window is enforced
  * by comparing {@link Duration#between(Instant, Instant)} of
  * {@code submittedAt} to {@link Instant#now()} against
- * {@link Duration#ofMinutes(5)}. Expired edits throw
+ * {@link Duration#ofMinutes(long)}. Expired edits throw
  * {@link EditWindowExpired}.
  *
  * <p><strong>Domain events.</strong> Each state-mutating factory or

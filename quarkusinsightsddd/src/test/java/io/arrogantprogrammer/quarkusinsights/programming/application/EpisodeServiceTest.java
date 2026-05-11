@@ -4,6 +4,7 @@ import io.arrogantprogrammer.quarkusinsights.programming.domain.AbstractSubmitte
 import io.arrogantprogrammer.quarkusinsights.programming.domain.AbstractText;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.AirDate;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.AirDateInPast;
+import io.arrogantprogrammer.quarkusinsights.programming.domain.AirDateNotYetReached;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.Episode;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeCanceled;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeNotFound;
@@ -325,9 +326,9 @@ class EpisodeServiceTest {
         }
 
         @Test
-        void propagatesAirDateInPastWhenNotYet() {
+        void propagatesAirDateNotYetReached() {
             Episode episode = seedScheduledEpisode(2);
-            assertThrows(AirDateInPast.class,
+            assertThrows(AirDateNotYetReached.class,
                 () -> service.goLive(new GoLiveCommand(episode.id())));
             assertTrue(publisher.publishedEvents().isEmpty());
         }

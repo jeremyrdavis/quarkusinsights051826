@@ -153,6 +153,11 @@ public class RatingRepositoryImpl implements RatingRepository {
                     if (existingBeforeInsert != null) {
                         throw new AlreadyRated(existingBeforeInsert.id(), attempted.episodeId(), attempted.author());
                     }
+                    // Race window: pre-query saw nothing, but the DB constraint fired.
+                    // Mirror the ConstraintViolationException null-handling: synthetic id.
+                    throw new AlreadyRated(
+                        io.arrogantprogrammer.quarkusinsights.shared.RatingId.random(),
+                        attempted.episodeId(), attempted.author());
                 }
                 // Check root PSQLException
                 Throwable root = gjdbc.getCause();
@@ -162,6 +167,9 @@ public class RatingRepositoryImpl implements RatingRepository {
                         if (existingBeforeInsert != null) {
                             throw new AlreadyRated(existingBeforeInsert.id(), attempted.episodeId(), attempted.author());
                         }
+                        throw new AlreadyRated(
+                            io.arrogantprogrammer.quarkusinsights.shared.RatingId.random(),
+                            attempted.episodeId(), attempted.author());
                     }
                 }
             }

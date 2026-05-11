@@ -346,7 +346,7 @@ class EpisodeTest {
         @Test
         void rejectsCallBeforeAirDate() {
             Episode episode = Episode.schedule(numberOne, titlePilot, tomorrow);
-            assertThrows(AirDateInPast.class, () -> episode.goLive());
+            assertThrows(AirDateNotYetReached.class, () -> episode.goLive());
         }
 
         @Test

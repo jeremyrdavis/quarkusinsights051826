@@ -265,14 +265,14 @@ public class Episode {
      *
      * @throws IllegalEpisodeTransition if the episode is not
      *     {@code SCHEDULED}
-     * @throws AirDateInPast if the air date is strictly after today
+     * @throws AirDateNotYetReached if the air date is strictly after today
      */
     public void goLive() {
         if (status != EpisodeStatus.SCHEDULED) {
             throw new IllegalEpisodeTransition(status);
         }
         if (airDate.value().isAfter(LocalDate.now())) {
-            throw new AirDateInPast(airDate);
+            throw new AirDateNotYetReached(airDate);
         }
         Instant now = Instant.now();
         this.status = EpisodeStatus.LIVE;

@@ -29,7 +29,7 @@ public class HistoryController {
     @Inject Template history;
 
     /**
-     * GET /episodes?page=&size= — render the history page.
+     * GET /episodes?page=&amp;size= — render the history page.
      *
      * @param page zero-based page number (default 0)
      * @param size page size (default 20)

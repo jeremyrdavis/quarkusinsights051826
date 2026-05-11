@@ -12,7 +12,7 @@ import io.arrogantprogrammer.quarkusinsights.shared.RatingId;
  * thrown from two distinct places to achieve belt-and-suspenders
  * protection:
  * <ol>
- *   <li><em>Precheck path</em> — {@link RatingService#submit} calls
+ *   <li><em>Precheck path</em> — {@link io.arrogantprogrammer.quarkusinsights.engagement.application.RatingService#submit(io.arrogantprogrammer.quarkusinsights.engagement.application.SubmitRatingCommand)} calls
  *       {@code RatingRepository#findByEpisodeAndAuthor} before creating
  *       the aggregate. If a matching Rating already exists, AlreadyRated
  *       is thrown immediately with the existing {@code RatingId} as payload.
