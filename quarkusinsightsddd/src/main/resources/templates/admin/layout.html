@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{#insert title}Admin · Quarkus Insights{/}</title>
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 1024px; margin: 0 auto; padding: 0 1rem 2rem; color: #222; }
+    header { padding: 1rem 0; border-bottom: 1px solid #ddd; margin-bottom: 1.5rem; }
+    header h1 { margin: 0 0 0.5rem; font-size: 1.3rem; }
+    header nav a { margin-right: 1rem; color: #444; text-decoration: none; }
+    header nav a.current { font-weight: 600; color: #111; text-decoration: underline; }
+    main { padding-top: 0.5rem; }
+    h2 { margin-top: 1.5rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+    th, td { text-align: left; padding: 0.5rem 0.75rem; border-bottom: 1px solid #eee; }
+    th { background: #f8f8f8; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; color: #555; }
+    tr:hover td { background: #fafafa; }
+    .meta { color: #666; font-size: 0.9rem; }
+    .person { display: inline-block; margin: 0.15rem 0.3rem 0.15rem 0; padding: 0.2rem 0.5rem; background: #eef; border-radius: 3px; font-size: 0.9rem; }
+    .chip-remove { margin-left: 0.4rem; color: #844; cursor: pointer; font-weight: 600; }
+    .status { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+    .status-SCHEDULED { background: #eef; color: #226; }
+    .status-LIVE { background: #fee; color: #822; }
+    .status-PUBLISHED { background: #efe; color: #262; }
+    .status-CANCELED { background: #eee; color: #555; }
+    form { margin: 1rem 0; padding: 1rem; background: #f8f8f8; border-radius: 5px; }
+    label { display: block; margin: 0.5rem 0 0.25rem; font-weight: 600; font-size: 0.9rem; }
+    input[type=text], input[type=number], input[type=date], input[type=search], input[type=email], textarea, select {
+      font-family: inherit; font-size: 1rem; padding: 0.4rem; width: 100%; box-sizing: border-box;
+      border: 1px solid #ccc; border-radius: 3px;
+    }
+    textarea { min-height: 8rem; }
+    button { font-family: inherit; padding: 0.5rem 1rem; background: #226; color: #fff; border: none; border-radius: 3px; cursor: pointer; }
+    button:hover { background: #114; }
+    button.secondary { background: #888; }
+    button.secondary:hover { background: #555; }
+    button.danger { background: #822; }
+    button.danger:hover { background: #511; }
+    .error { color: #822; background: #fee; padding: 0.5rem 0.75rem; border-radius: 3px; margin: 0.5rem 0; }
+    .picker-results { background: #fff; border: 1px solid #ddd; border-radius: 3px; max-height: 12rem; overflow-y: auto; margin-top: 0.25rem; }
+    .picker-results ul { list-style: none; margin: 0; padding: 0; }
+    .picker-results li { padding: 0.4rem 0.75rem; cursor: pointer; }
+    .picker-results li:hover { background: #f0f0ff; }
+    .selected-people { margin-top: 0.5rem; min-height: 1.5rem; }
+    .pagination { margin: 1rem 0; }
+    .pagination a, .pagination span { padding: 0.25rem 0.5rem; margin-right: 0.25rem; }
+    .pagination .current { font-weight: 700; }
+    .actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .public-link { float: right; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Quarkus Insights — Admin
+      <a class="public-link" href="/">Public site →</a>
+    </h1>
+    <nav>
+      <a href="/admin" class="{#if active is 'dashboard'}current{/if}">Dashboard</a>
+      <a href="/admin/episodes" class="{#if active is 'episodes'}current{/if}">Episodes</a>
+      <a href="/admin/people" class="{#if active is 'people'}current{/if}">People</a>
+    </nav>
+  </header>
+  <main>
+    {#insert content}
+      <!-- page content goes here -->
+    {/}
+  </main>
+</body>
+</html>

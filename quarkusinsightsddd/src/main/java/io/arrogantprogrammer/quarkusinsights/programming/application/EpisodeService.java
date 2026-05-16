@@ -74,6 +74,37 @@ public class EpisodeService {
     }
 
     /**
+     * Composes a new Episode end-to-end in a single transaction:
+     * schedules it, submits its abstract, and assigns its presenters
+     * and speakers. Atomic — if any step fails the entire composition
+     * is rolled back and no aggregate state or events are committed.
+     *
+     * <p>Emits {@code EpisodeScheduled}, {@code AbstractSubmitted}, and
+     * one {@code PresenterAssigned} / {@code SpeakerAssigned} event per
+     * person assigned, dispatched together after a single save.
+     *
+     * @param cmd the compose command; must not be null
+     * @return the id of the freshly composed Episode
+     * @throws EpisodeNumberAlreadyExists if the requested number is
+     *     already in use
+     * @throws io.arrogantprogrammer.quarkusinsights.programming.domain.AirDateInPast
+     *     if the air date is strictly before today
+     */
+    @Transactional
+    public EpisodeId compose(ComposeEpisodeCommand cmd) {
+        episodeRepository.findByNumber(cmd.number()).ifPresent(existing -> {
+            throw new EpisodeNumberAlreadyExists(cmd.number());
+        });
+        Episode episode = Episode.schedule(cmd.number(), cmd.title(), cmd.airDate());
+        episode.submitAbstract(cmd.abstractText());
+        cmd.presenters().forEach(episode::assignPresenter);
+        cmd.speakers().forEach(episode::assignSpeaker);
+        episodeRepository.save(episode);
+        dispatchEvents(episode);
+        return episode.id();
+    }
+
+    /**
      * Submits or replaces the Episode's abstract.
      *
      * @param cmd the command; must not be null

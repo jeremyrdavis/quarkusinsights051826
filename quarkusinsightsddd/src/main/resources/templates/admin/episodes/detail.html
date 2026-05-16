@@ -1,0 +1,105 @@
+{#include admin/layout}
+{#title}#{episode.number.value()} · Admin · Quarkus Insights{/title}
+{#content}
+  <h2>
+    <a href="/admin/episodes">← Episodes</a>
+    · #{episode.number.value()} {episode.title.value()}
+    <span class="status status-{episode.status}">{episode.status}</span>
+  </h2>
+  <p class="meta">Air date: {episode.airDate.value()} · Created {episode.createdAt} · Updated {episode.updatedAt}</p>
+
+  {#if error}<div class="error">{error}</div>{/if}
+
+  <h3>Lifecycle</h3>
+  <div class="actions">
+    {#if episode.status == 'SCHEDULED'}
+      <form method="post" action="/admin/episodes/{episode.id.value()}/go-live" style="display: inline; background: transparent; padding: 0;">
+        <button type="submit">Go live</button>
+      </form>
+      <form method="post" action="/admin/episodes/{episode.id.value()}/cancel" style="display: inline; background: transparent; padding: 0;"
+            onsubmit="var r = prompt('Cancellation reason?'); if (!r) return false; this.reason.value = r;">
+        <input type="hidden" name="reason" value="">
+        <button type="submit" class="danger">Cancel episode</button>
+      </form>
+    {#else if episode.status == 'LIVE'}
+      <form method="post" action="/admin/episodes/{episode.id.value()}/publish" style="display: inline; background: transparent; padding: 0;">
+        <button type="submit">Publish</button>
+      </form>
+    {#else}
+      <span class="meta">Terminal state — no further transitions.</span>
+    {/if}
+  </div>
+
+  <h3>Abstract</h3>
+  {#if episode.theAbstract != null}
+    <p style="white-space: pre-wrap;">{episode.theAbstract.text.value()}</p>
+  {/if}
+  {#if episode.status == 'SCHEDULED'}
+    <form method="post" action="/admin/episodes/{episode.id.value()}/abstract">
+      <label for="abstractText">{#if episode.theAbstract == null}Submit abstract{#else}Replace abstract{/if}</label>
+      <textarea id="abstractText" name="abstractText" required minlength="100" maxlength="5000">{#if episode.theAbstract != null}{episode.theAbstract.text.value()}{/if}</textarea>
+      <div style="margin-top: 0.5rem;"><button type="submit">Save abstract</button></div>
+    </form>
+  {/if}
+
+  <h3>Presenters ({episode.presenters.size})</h3>
+  <div>
+    {#for pid in episode.presenters}
+      <span class="person">{personNames.get(pid.value()) ?: pid.value()}</span>
+    {/for}
+    {#if episode.presenters.isEmpty}<span class="meta">None assigned.</span>{/if}
+  </div>
+  {#if episode.status == 'SCHEDULED' || episode.status == 'LIVE'}
+    <form method="post" action="/admin/episodes/{episode.id.value()}/presenters">
+      <label for="add-presenter-search">Add presenter</label>
+      <input type="search" id="add-presenter-search"
+             placeholder="Type a name…"
+             hx-get="/admin/fragments/people-search"
+             hx-trigger="keyup changed delay:300ms"
+             hx-target="#add-presenter-results"
+             hx-vals='{"picker": "true", "target": "presenter-single"}'
+             autocomplete="off">
+      <div id="add-presenter-results" class="picker-results"></div>
+      <input type="hidden" id="presenter-single-id" name="personId" required>
+      <div style="margin-top: 0.5rem;"><button type="submit" id="presenter-single-btn" disabled>Pick a presenter first</button></div>
+    </form>
+  {/if}
+
+  <h3>Speakers ({episode.speakers.size})</h3>
+  <div>
+    {#for sid in episode.speakers}
+      <span class="person">{personNames.get(sid.value()) ?: sid.value()}</span>
+    {/for}
+    {#if episode.speakers.isEmpty}<span class="meta">None assigned.</span>{/if}
+  </div>
+  {#if episode.status == 'SCHEDULED' || episode.status == 'LIVE'}
+    <form method="post" action="/admin/episodes/{episode.id.value()}/speakers">
+      <label for="add-speaker-search">Add speaker</label>
+      <input type="search" id="add-speaker-search"
+             placeholder="Type a name…"
+             hx-get="/admin/fragments/people-search"
+             hx-trigger="keyup changed delay:300ms"
+             hx-target="#add-speaker-results"
+             hx-vals='{"picker": "true", "target": "speaker-single"}'
+             autocomplete="off">
+      <div id="add-speaker-results" class="picker-results"></div>
+      <input type="hidden" id="speaker-single-id" name="personId" required>
+      <div style="margin-top: 0.5rem;"><button type="submit" id="speaker-single-btn" disabled>Pick a speaker first</button></div>
+    </form>
+  {/if}
+
+  <script>
+    // The picker fragment's "Add" buttons all call window.addPerson(this, target).
+    // On this page, target is "presenter-single" or "speaker-single" — a radio-style
+    // single-pick that fills a hidden input and enables the matching submit button.
+    window.addPerson = function(buttonEl, target) {
+      var role = target.split('-')[0]; // "presenter" or "speaker"
+      var hidden = document.getElementById(role + '-single-id');
+      var submitBtn = document.getElementById(role + '-single-btn');
+      hidden.value = buttonEl.dataset.personId;
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Add ' + buttonEl.dataset.personName;
+    };
+  </script>
+{/content}
+{/include}

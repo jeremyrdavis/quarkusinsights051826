@@ -1,0 +1,30 @@
+{#include admin/layout}
+{#title}People · Admin · Quarkus Insights{/title}
+{#content}
+  <h2>People <a href="/admin/people/new" style="float: right;"><button>+ Register person</button></a></h2>
+
+  <form onsubmit="return false;" style="background: transparent; padding: 0;">
+    <label for="search">Search by name</label>
+    <input type="search" id="search" name="search" value="{search ?: ''}"
+           placeholder="Type a first or last name…"
+           hx-get="/admin/fragments/people-search"
+           hx-trigger="keyup changed delay:300ms, search"
+           hx-target="#results"
+           hx-include="this"
+           autocomplete="off">
+  </form>
+
+  <div id="results">
+    {#include admin/people/_search-results /}
+  </div>
+
+  <p class="meta" style="margin-top: 1rem;">{total} total · page {page + 1} of {pageCount}</p>
+  {#if pageCount > 1}
+    <div class="pagination">
+      {#if page > 0}<a href="/admin/people?page={page - 1}&size={size}&search={search ?: ''}">‹ Previous</a>{/if}
+      <span class="current">Page {page + 1}</span>
+      {#if (page + 1) < pageCount}<a href="/admin/people?page={page + 1}&size={size}&search={search ?: ''}">Next ›</a>{/if}
+    </div>
+  {/if}
+{/content}
+{/include}

@@ -1,0 +1,57 @@
+{#include admin/layout}
+{#title}Episodes · Admin · Quarkus Insights{/title}
+{#content}
+  <h2>Episodes <a href="/admin/episodes/new" style="float: right;"><button>+ New episode</button></a></h2>
+
+  <form method="get" action="/admin/episodes" style="background: transparent; padding: 0;">
+    <label for="status">Filter by status</label>
+    <select id="status" name="status" onchange="this.form.submit()">
+      <option value="">All statuses</option>
+      <option value="SCHEDULED" {#if statusFilter == 'SCHEDULED'}selected{/if}>Scheduled</option>
+      <option value="LIVE" {#if statusFilter == 'LIVE'}selected{/if}>Live</option>
+      <option value="PUBLISHED" {#if statusFilter == 'PUBLISHED'}selected{/if}>Published</option>
+      <option value="CANCELED" {#if statusFilter == 'CANCELED'}selected{/if}>Canceled</option>
+    </select>
+  </form>
+
+  {#if rows.isEmpty}
+    <p class="meta">No episodes yet. <a href="/admin/episodes/new">Compose one</a>.</p>
+  {#else}
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Title</th>
+          <th>Status</th>
+          <th>Air date</th>
+          <th>Cast</th>
+          <th>Abstract</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {#for r in rows}
+          <tr>
+            <td>{r.number}</td>
+            <td><a href="/admin/episodes/{r.id.value()}">{r.title}</a></td>
+            <td><span class="status status-{r.status}">{r.status}</span></td>
+            <td>{r.airDate}</td>
+            <td>{r.presenterCount}P / {r.speakerCount}S</td>
+            <td>{#if r.hasAbstract}✓{#else}—{/if}</td>
+            <td><a href="/admin/episodes/{r.id.value()}">Open</a></td>
+          </tr>
+        {/for}
+      </tbody>
+    </table>
+  {/if}
+
+  <p class="meta">{total} total · page {page + 1} of {pageCount}</p>
+  {#if pageCount > 1}
+    <div class="pagination">
+      {#if page > 0}<a href="/admin/episodes?page={page - 1}&size={size}&status={statusFilter ?: ''}">‹ Previous</a>{/if}
+      <span class="current">Page {page + 1}</span>
+      {#if (page + 1) < pageCount}<a href="/admin/episodes?page={page + 1}&size={size}&status={statusFilter ?: ''}">Next ›</a>{/if}
+    </div>
+  {/if}
+{/content}
+{/include}

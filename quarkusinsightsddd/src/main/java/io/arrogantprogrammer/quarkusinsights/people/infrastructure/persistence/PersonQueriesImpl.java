@@ -4,9 +4,11 @@ import io.arrogantprogrammer.quarkusinsights.people.application.PersonQueries;
 import io.arrogantprogrammer.quarkusinsights.people.application.PersonSummary;
 import io.arrogantprogrammer.quarkusinsights.people.domain.PersonRepository;
 import io.arrogantprogrammer.quarkusinsights.shared.PersonId;
+import io.quarkus.panache.common.Sort;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -41,5 +43,43 @@ public class PersonQueriesImpl implements PersonQueries {
     public Optional<PersonSummary> findById(PersonId id) {
         return repository.findById(id)
             .map(p -> new PersonSummary(p.id(), p.name().displayName(), p.email().value()));
+    }
+
+    @Override
+    public List<PersonSummary> search(Optional<String> search, int page, int size) {
+        Sort byName = Sort.by("nameLast").and("nameFirst");
+        List<PersonEntity> entities = search
+            .filter(s -> !s.isBlank())
+            .map(s -> {
+                String pattern = "%" + s.toLowerCase() + "%";
+                return PersonEntity.<PersonEntity>find(
+                    "LOWER(nameFirst) LIKE ?1 OR LOWER(nameLast) LIKE ?1",
+                    byName, pattern
+                ).page(page, size).list();
+            })
+            .orElseGet(() -> PersonEntity.<PersonEntity>findAll(byName).page(page, size).list());
+        return entities.stream().map(this::toSummary).toList();
+    }
+
+    @Override
+    public long countAll(Optional<String> search) {
+        return search
+            .filter(s -> !s.isBlank())
+            .map(s -> {
+                String pattern = "%" + s.toLowerCase() + "%";
+                return PersonEntity.count(
+                    "LOWER(nameFirst) LIKE ?1 OR LOWER(nameLast) LIKE ?1",
+                    pattern
+                );
+            })
+            .orElseGet(() -> PersonEntity.count());
+    }
+
+    private PersonSummary toSummary(PersonEntity e) {
+        return new PersonSummary(
+            new PersonId(e.id),
+            e.nameFirst + " " + e.nameLast,
+            e.email
+        );
     }
 }

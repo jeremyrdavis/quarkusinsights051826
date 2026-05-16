@@ -3,6 +3,9 @@ package io.arrogantprogrammer.quarkusinsights.programming.interfaces;
 import io.arrogantprogrammer.quarkusinsights.programming.application.AssignPresenterCommand;
 import io.arrogantprogrammer.quarkusinsights.programming.application.AssignSpeakerCommand;
 import io.arrogantprogrammer.quarkusinsights.programming.application.CancelEpisodeCommand;
+import io.arrogantprogrammer.quarkusinsights.programming.application.ComposeEpisodeCommand;
+import io.arrogantprogrammer.quarkusinsights.programming.application.EpisodeListRow;
+import io.arrogantprogrammer.quarkusinsights.programming.application.EpisodeQueries;
 import io.arrogantprogrammer.quarkusinsights.programming.application.EpisodeService;
 import io.arrogantprogrammer.quarkusinsights.programming.application.GoLiveCommand;
 import io.arrogantprogrammer.quarkusinsights.programming.application.PublishEpisodeCommand;
@@ -14,6 +17,7 @@ import io.arrogantprogrammer.quarkusinsights.programming.domain.Episode;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeNotFound;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeNumber;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeRepository;
+import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeStatus;
 import io.arrogantprogrammer.quarkusinsights.programming.domain.EpisodeTitle;
 import io.arrogantprogrammer.quarkusinsights.shared.EpisodeId;
 import io.arrogantprogrammer.quarkusinsights.shared.PersonId;
@@ -21,15 +25,19 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
 import java.net.URI;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -68,6 +76,7 @@ public class EpisodeResource {
 
     @Inject EpisodeService episodeService;
     @Inject EpisodeRepository repository;
+    @Inject EpisodeQueries episodeQueries;
     @Inject EpisodeResponseMapper responseMapper;
 
     /**
@@ -92,6 +101,32 @@ public class EpisodeResource {
     }
 
     /**
+     * Composes a complete Episode (schedule + abstract + presenters +
+     * speakers) in a single transactional step.
+     *
+     * @param request the compose request
+     * @return 201 Created with Location header
+     */
+    @POST
+    @Path("/compose")
+    @Transactional
+    public Response compose(ComposeEpisodeRequest request) {
+        ComposeEpisodeCommand cmd = new ComposeEpisodeCommand(
+            new EpisodeNumber(request.number()),
+            new EpisodeTitle(request.title()),
+            new AirDate(request.airDate()),
+            new AbstractText(request.abstractText()),
+            request.presenterIds().stream().map(PersonId::new).collect(java.util.stream.Collectors.toSet()),
+            request.speakerIds().stream().map(PersonId::new).collect(java.util.stream.Collectors.toSet())
+        );
+        EpisodeId id = episodeService.compose(cmd);
+        Episode created = loadOrThrow(id);
+        return Response.created(URI.create("/api/episodes/" + id.value()))
+            .entity(responseMapper.toResponse(created))
+            .build();
+    }
+
+    /**
      * Loads an Episode.
      */
     @GET
@@ -99,6 +134,27 @@ public class EpisodeResource {
     @Transactional
     public EpisodeResponse get(@PathParam("id") UUID id) {
         return responseMapper.toResponse(loadOrThrow(new EpisodeId(id)));
+    }
+
+    /**
+     * Returns a paginated list of Episode list rows for admin use.
+     *
+     * @param page   zero-based page index (default 0)
+     * @param size   maximum page size (default 20)
+     * @param status optional status filter; null returns all statuses
+     * @return 200 with the list of rows and a total-count header
+     */
+    @GET
+    @Transactional
+    public Response list(
+        @QueryParam("page") @DefaultValue("0") int page,
+        @QueryParam("size") @DefaultValue("20") int size,
+        @QueryParam("status") EpisodeStatus status
+    ) {
+        Optional<EpisodeStatus> filter = Optional.ofNullable(status);
+        List<EpisodeListRow> rows = episodeQueries.listAll(page, size, filter);
+        long total = episodeQueries.countAll(filter);
+        return Response.ok(rows).header("X-Total-Count", total).build();
     }
 
     /**

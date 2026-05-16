@@ -196,4 +196,100 @@ class EpisodeResourceTest {
             .then().statusCode(409)
             .body("error", equalTo("IllegalEpisodeTransition"));
     }
+
+    @Test
+    void composeEndpointCreatesFullyPopulatedEpisode() {
+        int n = allocateNumber();
+        UUID presenter = UUID.randomUUID();
+        UUID speaker = UUID.randomUUID();
+        String body = "{"
+            + "\"number\":" + n + ","
+            + "\"title\":\"Composed E2E\","
+            + "\"airDate\":\"" + LocalDate.now().plusDays(5) + "\","
+            + "\"abstractText\":\"" + "z".repeat(150) + "\","
+            + "\"presenterIds\":[\"" + presenter + "\"],"
+            + "\"speakerIds\":[\"" + speaker + "\"]"
+            + "}";
+
+        given()
+            .contentType("application/json")
+            .body(body)
+            .when().post("/api/episodes/compose")
+            .then().statusCode(201)
+            .header("Location", notNullValue())
+            .body("number", equalTo(n))
+            .body("status", equalTo("SCHEDULED"))
+            .body("theAbstract.text", notNullValue())
+            .body("presenters", hasSize(1))
+            .body("speakers", hasSize(1));
+    }
+
+    @Test
+    void composeReturns409WhenNumberDuplicate() {
+        int n = allocateNumber();
+        scheduleEpisode(n, "Holds the number", LocalDate.now().plusDays(1));
+        String body = "{"
+            + "\"number\":" + n + ","
+            + "\"title\":\"Conflict\","
+            + "\"airDate\":\"" + LocalDate.now().plusDays(2) + "\","
+            + "\"abstractText\":\"" + "z".repeat(150) + "\","
+            + "\"presenterIds\":[\"" + UUID.randomUUID() + "\"],"
+            + "\"speakerIds\":[\"" + UUID.randomUUID() + "\"]"
+            + "}";
+
+        given()
+            .contentType("application/json")
+            .body(body)
+            .when().post("/api/episodes/compose")
+            .then().statusCode(409)
+            .body("error", equalTo("EpisodeNumberAlreadyExists"));
+    }
+
+    @Test
+    void listEndpointReturnsRowsWithTotalCountHeader() {
+        int n1 = allocateNumber();
+        int n2 = allocateNumber();
+        scheduleEpisode(n1, "List one", LocalDate.now().plusDays(1));
+        scheduleEpisode(n2, "List two", LocalDate.now().plusDays(2));
+
+        given()
+            .queryParam("page", "0")
+            .queryParam("size", "200")
+            .when().get("/api/episodes")
+            .then().statusCode(200)
+            .header("X-Total-Count", notNullValue());
+    }
+
+    @Test
+    void listEndpointFiltersByStatus() {
+        int n = allocateNumber();
+        scheduleEpisode(n, "Filtered", LocalDate.now().plusDays(1));
+
+        given()
+            .queryParam("status", "SCHEDULED")
+            .queryParam("size", "200")
+            .when().get("/api/episodes")
+            .then().statusCode(200);
+        // Just verifies the filter accepts the parameter and returns 200.
+    }
+
+    @Test
+    void composeReturns400WhenAbstractTooShort() {
+        int n = allocateNumber();
+        String body = "{"
+            + "\"number\":" + n + ","
+            + "\"title\":\"Short abstract\","
+            + "\"airDate\":\"" + LocalDate.now().plusDays(1) + "\","
+            + "\"abstractText\":\"too short\","
+            + "\"presenterIds\":[\"" + UUID.randomUUID() + "\"],"
+            + "\"speakerIds\":[\"" + UUID.randomUUID() + "\"]"
+            + "}";
+
+        given()
+            .contentType("application/json")
+            .body(body)
+            .when().post("/api/episodes/compose")
+            .then().statusCode(400)
+            .body("error", equalTo("IllegalArgumentException"));
+    }
 }

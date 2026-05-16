@@ -59,6 +59,14 @@ class PublicCatalogQueriesImplTest {
     @Test
     @TestTransaction
     void findUpcomingReturnsEmptyWhenNoScheduled() {
+        // Drop any SCHEDULED rows that other test classes may have left
+        // committed (e.g., the admin-controller tests POST through the
+        // service layer without @TestTransaction, so their projector
+        // upserts persist beyond their own test). The delete happens
+        // inside this @TestTransaction and is rolled back at the end,
+        // so other suites' assumptions are unaffected.
+        PublicEpisodeViewEntity.delete("status", EpisodeStatus.SCHEDULED);
+
         // Only persist a PUBLISHED episode; no SCHEDULED ones
         PublicEpisodeViewEntity published = scheduledEntity(200, "Past Episode", LocalDate.now().minusDays(1));
         published.status = EpisodeStatus.PUBLISHED;

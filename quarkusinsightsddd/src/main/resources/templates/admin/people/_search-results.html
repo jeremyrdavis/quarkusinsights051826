@@ -1,0 +1,28 @@
+{#if results.isEmpty}
+  <p class="meta">No matches.</p>
+{#else}
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th></th></tr></thead>
+    <tbody>
+      {#for p in results}
+        <tr>
+          <td><a href="/admin/people/{p.id.value()}">{p.displayName}</a></td>
+          <td>{p.email}</td>
+          <td>
+            {#if pickerMode == true}
+              <button type="button"
+                      data-person-id="{p.id.value()}"
+                      data-person-name="{p.displayName}"
+                      onclick="window.addPerson(this, '{pickerTarget}')">
+                Add
+              </button>
+            {/if}
+          </td>
+        </tr>
+      {/for}
+    </tbody>
+  </table>
+  {#if total > size}
+    <p class="meta">Showing first {size} of {total} matches. Refine your search to narrow.</p>
+  {/if}
+{/if}

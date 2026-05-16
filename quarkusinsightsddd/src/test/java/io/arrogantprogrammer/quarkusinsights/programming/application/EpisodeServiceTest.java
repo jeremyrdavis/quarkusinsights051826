@@ -396,4 +396,114 @@ class EpisodeServiceTest {
             assertTrue(publisher.publishedEvents().isEmpty());
         }
     }
+
+    @Nested
+    class Compose {
+
+        private ComposeEpisodeCommand validCommand(int number) {
+            return new ComposeEpisodeCommand(
+                new EpisodeNumber(number),
+                new EpisodeTitle("Pilot"),
+                new AirDate(LocalDate.now().plusDays(7)),
+                new AbstractText("a".repeat(150)),
+                java.util.Set.of(PersonId.random()),
+                java.util.Set.of(PersonId.random())
+            );
+        }
+
+        @Test
+        void persistsAndReturnsIdOfNewEpisode() {
+            EpisodeId id = service.compose(validCommand(1));
+            assertNotNull(id);
+            Episode persisted = repository.findById(id).orElseThrow();
+            assertEquals(EpisodeStatus.SCHEDULED, persisted.status());
+            assertNotNull(persisted.theAbstract());
+            assertEquals(1, persisted.presenters().size());
+            assertEquals(1, persisted.speakers().size());
+        }
+
+        @Test
+        void publishesAllEventsInOrder() {
+            service.compose(validCommand(1));
+            java.util.List<?> events = publisher.publishedEvents();
+            assertEquals(4, events.size());
+            assertInstanceOf(EpisodeScheduled.class, events.get(0));
+            assertInstanceOf(AbstractSubmitted.class, events.get(1));
+            assertInstanceOf(PresenterAssigned.class, events.get(2));
+            assertInstanceOf(SpeakerAssigned.class, events.get(3));
+        }
+
+        @Test
+        void publishesOneAssignmentEventPerPerson() {
+            PersonId p1 = PersonId.random();
+            PersonId p2 = PersonId.random();
+            PersonId s1 = PersonId.random();
+            ComposeEpisodeCommand cmd = new ComposeEpisodeCommand(
+                new EpisodeNumber(1),
+                new EpisodeTitle("Two hosts"),
+                new AirDate(LocalDate.now().plusDays(7)),
+                new AbstractText("a".repeat(150)),
+                java.util.Set.of(p1, p2),
+                java.util.Set.of(s1)
+            );
+            service.compose(cmd);
+            long presenterEvents = publisher.publishedEvents().stream()
+                .filter(e -> e instanceof PresenterAssigned).count();
+            long speakerEvents = publisher.publishedEvents().stream()
+                .filter(e -> e instanceof SpeakerAssigned).count();
+            assertEquals(2, presenterEvents);
+            assertEquals(1, speakerEvents);
+        }
+
+        @Test
+        void rejectsDuplicateNumberAndPublishesNothing() {
+            seedScheduledEpisode(7);
+            EpisodeNumberAlreadyExists ex = assertThrows(EpisodeNumberAlreadyExists.class,
+                () -> service.compose(validCommand(7)));
+            assertEquals(new EpisodeNumber(7), ex.number());
+            assertTrue(publisher.publishedEvents().isEmpty());
+            assertEquals(1, repository.size());
+        }
+
+        @Test
+        void rejectsAirDateInPast() {
+            ComposeEpisodeCommand cmd = new ComposeEpisodeCommand(
+                new EpisodeNumber(1),
+                new EpisodeTitle("Stale"),
+                new AirDate(LocalDate.now().minusDays(1)),
+                new AbstractText("a".repeat(150)),
+                java.util.Set.of(PersonId.random()),
+                java.util.Set.of(PersonId.random())
+            );
+            assertThrows(AirDateInPast.class, () -> service.compose(cmd));
+            assertEquals(0, repository.size());
+            assertTrue(publisher.publishedEvents().isEmpty());
+        }
+
+        @Test
+        void rejectsEmptyPresenters() {
+            assertThrows(IllegalArgumentException.class,
+                () -> new ComposeEpisodeCommand(
+                    new EpisodeNumber(1),
+                    new EpisodeTitle("Bad"),
+                    new AirDate(LocalDate.now().plusDays(1)),
+                    new AbstractText("a".repeat(150)),
+                    java.util.Set.of(),
+                    java.util.Set.of(PersonId.random())
+                ));
+        }
+
+        @Test
+        void rejectsEmptySpeakers() {
+            assertThrows(IllegalArgumentException.class,
+                () -> new ComposeEpisodeCommand(
+                    new EpisodeNumber(1),
+                    new EpisodeTitle("Bad"),
+                    new AirDate(LocalDate.now().plusDays(1)),
+                    new AbstractText("a".repeat(150)),
+                    java.util.Set.of(PersonId.random()),
+                    java.util.Set.of()
+                ));
+        }
+    }
 }

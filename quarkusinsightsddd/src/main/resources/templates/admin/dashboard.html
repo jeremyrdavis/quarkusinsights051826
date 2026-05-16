@@ -1,0 +1,26 @@
+{#include admin/layout}
+{#title}Dashboard · Admin · Quarkus Insights{/title}
+{#content}
+  <h2>Dashboard</h2>
+  <p class="meta">No authentication is configured on these pages. Do not deploy publicly.</p>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
+    <div style="padding: 1rem; background: #f8f8f8; border-radius: 5px;">
+      <h3 style="margin-top: 0;">Episodes</h3>
+      <p>{episodeCount} total</p>
+      <div class="actions">
+        <a href="/admin/episodes"><button class="secondary">View all</button></a>
+        <a href="/admin/episodes/new"><button>+ New episode</button></a>
+      </div>
+    </div>
+    <div style="padding: 1rem; background: #f8f8f8; border-radius: 5px;">
+      <h3 style="margin-top: 0;">People</h3>
+      <p>{personCount} total</p>
+      <div class="actions">
+        <a href="/admin/people"><button class="secondary">View all</button></a>
+        <a href="/admin/people/new"><button>+ Register person</button></a>
+      </div>
+    </div>
+  </div>
+{/content}
+{/include}

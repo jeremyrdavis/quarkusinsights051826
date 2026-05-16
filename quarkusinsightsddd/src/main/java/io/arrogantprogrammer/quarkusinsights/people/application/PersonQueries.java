@@ -2,6 +2,7 @@ package io.arrogantprogrammer.quarkusinsights.people.application;
 
 import io.arrogantprogrammer.quarkusinsights.shared.PersonId;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,4 +28,25 @@ public interface PersonQueries {
      * @return a flat summary, or empty if no Person with that id exists
      */
     Optional<PersonSummary> findById(PersonId id);
+
+    /**
+     * Returns a page of Person summaries, optionally filtered by a
+     * case-insensitive substring match across first and last name.
+     * Ordered alphabetically by last name then first name.
+     *
+     * @param search optional substring; empty returns all
+     * @param page   zero-based page index; must be &ge; 0
+     * @param size   maximum page size; must be &ge; 1
+     * @return matching summaries (possibly empty)
+     */
+    List<PersonSummary> search(Optional<String> search, int page, int size);
+
+    /**
+     * Total count of People, optionally filtered by the same search
+     * substring used by {@link #search}.
+     *
+     * @param search optional substring; empty counts all
+     * @return the total count
+     */
+    long countAll(Optional<String> search);
 }

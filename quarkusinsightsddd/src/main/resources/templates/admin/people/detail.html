@@ -1,0 +1,42 @@
+{#include admin/layout}
+{#title}{person.name.displayName} · Admin · Quarkus Insights{/title}
+{#content}
+  <h2><a href="/admin/people">← All people</a> · {person.name.displayName}</h2>
+  <p class="meta">Registered {person.createdAt} · last updated {person.updatedAt}</p>
+
+  {#if error}<div class="error">{error}</div>{/if}
+  {#if message}<div class="error" style="color: #262; background: #efe;">{message}</div>{/if}
+
+  <h3>Name</h3>
+  <form method="post" action="/admin/people/{person.id.value()}/name">
+    <label for="firstName">First</label>
+    <input type="text" id="firstName" name="firstName" value="{person.name.first}" required maxlength="100">
+    <label for="lastName">Last</label>
+    <input type="text" id="lastName" name="lastName" value="{person.name.last}" required maxlength="100">
+    <div style="margin-top: 0.5rem;"><button type="submit">Save name</button></div>
+  </form>
+
+  <h3>Email</h3>
+  <p>{person.email.value()} <span class="meta">(not editable in this UI)</span></p>
+
+  <h3>Biography</h3>
+  <form method="post" action="/admin/people/{person.id.value()}/bio">
+    <textarea id="bio" name="bio" required minlength="50" maxlength="2000">{person.bio.value()}</textarea>
+    <div style="margin-top: 0.5rem;"><button type="submit">Save bio</button></div>
+  </form>
+
+  <h3>Social links</h3>
+  <form method="post" action="/admin/people/{person.id.value()}/socials">
+    <label for="twitter">Twitter / X URL</label>
+    <input type="text" id="twitter" name="twitter"
+           value="{#if person.socials.twitter.isPresent}{person.socials.twitter.get().toString}{/if}">
+    <label for="linkedin">LinkedIn URL</label>
+    <input type="text" id="linkedin" name="linkedin"
+           value="{#if person.socials.linkedin.isPresent}{person.socials.linkedin.get().toString}{/if}">
+    <label for="website">Website URL</label>
+    <input type="text" id="website" name="website"
+           value="{#if person.socials.website.isPresent}{person.socials.website.get().toString}{/if}">
+    <div style="margin-top: 0.5rem;"><button type="submit">Save links</button></div>
+  </form>
+{/content}
+{/include}
