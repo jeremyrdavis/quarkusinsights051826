@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>New Episode · Quarkus Insights</title>
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <script src="https://unpkg.com/htmx-ext-json-enc@2.0.2/json-enc.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; color: #222; }
+    h1 { margin-bottom: 0.25rem; }
+    .meta { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    form { padding: 1rem; background: #f8f8f8; border-radius: 5px; }
+    label { display: block; margin: 0.75rem 0 0.25rem; font-weight: 600; font-size: 0.9rem; }
+    .hint { display: block; color: #666; font-size: 0.8rem; font-weight: 400; margin-top: -0.15rem; margin-bottom: 0.25rem; }
+    input[type=text], textarea {
+      font-family: inherit; font-size: 1rem; padding: 0.4rem; width: 100%; box-sizing: border-box;
+      border: 1px solid #ccc; border-radius: 3px;
+    }
+    textarea { min-height: 6rem; }
+    button { font-family: inherit; padding: 0.5rem 1rem; background: #226; color: #fff; border: none; border-radius: 3px; cursor: pointer; }
+    button:hover { background: #114; }
+    #result { margin-top: 1rem; padding: 0.75rem; background: #efe; color: #262; border-radius: 3px; min-height: 1rem; }
+    #result:empty { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Create an Episode</h1>
+  <p class="meta">POSTs to <code>/episodes</code> via HTMX (JSON-encoded). The endpoint detects <code>HX-Request</code> and returns an HTML fragment, swapped into the result panel below.</p>
+
+  <form id="create-episode-form"
+        hx-post="/episodes"
+        hx-ext="json-enc"
+        hx-target="#result"
+        hx-swap="innerHTML">
+
+    <label for="title">Episode title</label>
+    <input type="text" id="title" name="title" required maxlength="200">
+
+    <label for="description">Episode description</label>
+    <textarea id="description" name="description" required></textarea>
+
+    <label for="hostsCsv">Hosts</label>
+    <span class="hint">Comma-separated names — e.g. "Pat Presenter, Sam Smith"</span>
+    <input type="text" id="hostsCsv" name="hostsCsv" required>
+
+    <label for="presentersCsv">Presenters</label>
+    <span class="hint">Comma-separated names. Stored under the Episode's <code>guests</code> collection (the entity's name for the second cast list).</span>
+    <input type="text" id="presentersCsv" name="presentersCsv" required>
+
+    <div style="margin-top: 1rem;">
+      <button type="submit">Create episode</button>
+    </div>
+  </form>
+
+  <div id="result" aria-live="polite"></div>
+
+  <script>
+    // Transform the flat form fields into the nested JSON shape the
+    // EpisodeResource expects (title, description, plus hosts and
+    // guests as arrays of person objects) before HTMX json-enc
+    // serializes the payload.
+    document.body.addEventListener('htmx:configRequest', function(evt) {
+      if (evt.target.id !== 'create-episode-form') return;
+      var p = evt.detail.parameters;
+      var toPeople = function(csv) {
+        return (csv || '')
+          .split(',')
+          .map(function(s) { return s.trim(); })
+          .filter(function(n) { return n.length > 0; })
+          .map(function(n) { return { name: n }; });
+      };
+      evt.detail.parameters = {
+        title: p.title,
+        description: p.description,
+        hosts: toPeople(p.hostsCsv),
+        guests: toPeople(p.presentersCsv)
+      };
+    });
+  </script>
+</body>
+</html>
